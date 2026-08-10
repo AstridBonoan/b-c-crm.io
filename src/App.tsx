@@ -10,6 +10,7 @@ import { PipelinePage } from '@/features/pipeline/PipelinePage'
 import { DealsPage } from '@/features/deals/DealsPage'
 import { CustomersPage } from '@/features/customers/CustomersPage'
 import { ProjectsPage } from '@/features/projects/ProjectsPage'
+import { TasksPage } from '@/features/tasks/TasksPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -32,16 +33,7 @@ export default function App() {
               <Route path="deals" element={<DealsPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="projects" element={<ProjectsPage />} />
-              <Route
-                path="tasks"
-                element={
-                  <ModulePlaceholderPage
-                    title="Tasks"
-                    description="Employee follow-ups and work items."
-                    branchName="feature/tasks"
-                  />
-                }
-              />
+              <Route path="tasks" element={<TasksPage />} />
               <Route
                 path="activities"
                 element={
