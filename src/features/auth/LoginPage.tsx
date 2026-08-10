@@ -6,11 +6,15 @@ import { loginSchema, type LoginFormValues } from '@/features/auth/schemas'
 import { useAuth } from '@/features/auth/useAuth'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
+type Mode = 'signin' | 'signup'
+
 export function LoginPage() {
-  const { signIn, user, loading, configured } = useAuth()
+  const { signIn, signUp, user, loading, configured } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [mode, setMode] = useState<Mode>('signin')
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
   const {
     register,
@@ -32,11 +36,32 @@ export function LoginPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-    const result = await signIn(values.email, values.password)
+    setInfoMessage(null)
+
+    if (mode === 'signin') {
+      const result = await signIn(values.email, values.password)
+      if (result.error) {
+        setSubmitError(result.error)
+        return
+      }
+      navigate('/', { replace: true })
+      return
+    }
+
+    const result = await signUp(values.email, values.password)
     if (result.error) {
       setSubmitError(result.error)
       return
     }
+
+    if (result.needsEmailConfirmation) {
+      setInfoMessage(
+        'Account created, but Supabase requires email confirmation before sign-in. In the Supabase dashboard go to Authentication → Providers → Email and turn off “Confirm email”, then sign in. Or confirm via the email link.',
+      )
+      setMode('signin')
+      return
+    }
+
     navigate('/', { replace: true })
   })
 
@@ -48,7 +73,9 @@ export function LoginPage() {
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-ink">Internal CRM</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Sign in with your B&amp;C employee account. Customers do not have access.
+          {mode === 'signin'
+            ? 'Sign in with your B&C employee account. Customers do not have access.'
+            : 'Create your employee account. This CRM is for internal B&C use only.'}
         </p>
 
         {!configured && (
@@ -85,7 +112,7 @@ export function LoginPage() {
             <input
               id="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
               {...register('password')}
             />
@@ -100,14 +127,60 @@ export function LoginPage() {
             </p>
           )}
 
+          {infoMessage && (
+            <p className="border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-900">
+              {infoMessage}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={isSubmitting}
             className="w-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
           >
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
+            {isSubmitting
+              ? mode === 'signin'
+                ? 'Signing in…'
+                : 'Creating account…'
+              : mode === 'signin'
+                ? 'Sign in'
+                : 'Create account'}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-slate-600">
+          {mode === 'signin' ? (
+            <>
+              First time here?{' '}
+              <button
+                type="button"
+                className="font-medium text-brand-700 hover:underline"
+                onClick={() => {
+                  setMode('signup')
+                  setSubmitError(null)
+                  setInfoMessage(null)
+                }}
+              >
+                Create your account
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button
+                type="button"
+                className="font-medium text-brand-700 hover:underline"
+                onClick={() => {
+                  setMode('signin')
+                  setSubmitError(null)
+                  setInfoMessage(null)
+                }}
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   )
