@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import {
   loginSchema,
   signupSchema,
@@ -226,7 +226,6 @@ function CredentialsForm({ mode, configured, onSwitchMode }: CredentialsFormProp
 export function LoginPage() {
   const { user, loading, configured } = useAuth()
   const { theme } = useTheme()
-  const location = useLocation()
   const [mode, setMode] = useState<Mode>('signin')
 
   if (loading) {
@@ -234,8 +233,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/'
-    return <Navigate to={from} replace />
+    return <Navigate to="/" replace />
   }
 
   const atmosphereLogoVariant = theme === 'dark' ? 'dark' : 'light'
