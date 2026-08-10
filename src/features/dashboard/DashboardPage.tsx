@@ -12,6 +12,8 @@ import {
 } from '@/features/dashboard/api'
 import { formatOccurredAt, typeLabel } from '@/features/activities/schemas'
 import { priorityLabel, statusLabel } from '@/features/tasks/schemas'
+import { useAuth } from '@/features/auth/useAuth'
+import { roleSummary, roleTitle } from '@/features/roles/roles'
 
 function formatDue(due: string | null): string {
   if (!due) return 'No due date'
@@ -24,6 +26,7 @@ function isOverdue(due: string | null, status: string): boolean {
 }
 
 export function DashboardPage() {
+  const { profile } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -98,6 +101,21 @@ export function DashboardPage() {
         <p className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}
         </p>
+      ) : null}
+
+      {profile?.role ? (
+        <Panel className="mb-4 px-4 py-3">
+          <p className="text-sm text-ink">
+            <span className="font-semibold">{roleTitle(profile.role)}</span>
+            <span className="text-ink-muted"> — {roleSummary(profile.role)}</span>
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            Soft ownership: update each other’s work freely so you both stay aligned.{' '}
+            <Link to="/team" className="font-medium text-blue hover:underline">
+              View team
+            </Link>
+          </p>
+        </Panel>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

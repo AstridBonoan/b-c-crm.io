@@ -14,11 +14,13 @@ import {
   StickyNote,
   Target,
   Users,
+  UsersRound,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
+import { roleTitle } from '@/features/roles/roles'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { BrandLogo } from '@/components/brand/BrandLogo'
@@ -30,6 +32,7 @@ const navItems: {
   end?: boolean
 }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/team', label: 'Team', icon: UsersRound },
   { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
   { to: '/leads', label: 'Leads', icon: Target },
@@ -142,7 +145,7 @@ export function AppLayout() {
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-ink">{displayName}</p>
               {profile?.role ? (
-                <p className="text-xs capitalize text-ink-muted">{profile.role}</p>
+                <p className="text-xs text-ink-muted">{roleTitle(profile.role)}</p>
               ) : null}
             </div>
             <Button variant="secondary" size="sm" onClick={() => void signOut()}>
