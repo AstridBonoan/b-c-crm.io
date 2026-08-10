@@ -1,6 +1,7 @@
 import {
   Briefcase,
   Building2,
+  ChartColumn,
   CheckSquare,
   ContactRound,
   FileText,
@@ -41,6 +42,7 @@ const navItems: {
   { to: '/notes', label: 'Notes', icon: StickyNote },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/search', label: 'Search', icon: Search },
+  { to: '/analytics', label: 'Analytics', icon: ChartColumn },
 ]
 
 export function AppLayout() {
