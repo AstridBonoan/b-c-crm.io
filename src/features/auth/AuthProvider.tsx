@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       return {
         error:
-          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.',
+          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
       }
     }
 

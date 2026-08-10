@@ -55,8 +55,9 @@ export function LoginPage() {
           <div className="mt-4 border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Supabase environment variables are not configured yet. Copy{' '}
             <code className="font-mono text-xs">.env.example</code> to{' '}
-            <code className="font-mono text-xs">.env</code> and add your project
-            credentials.
+            <code className="font-mono text-xs">.env</code> and set{' '}
+            <code className="font-mono text-xs">VITE_SUPABASE_URL</code> plus{' '}
+            <code className="font-mono text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code>.
           </div>
         )}
 

@@ -56,11 +56,11 @@ cp .env.example .env
 ### 2. Configure Supabase
 
 1. Create a Supabase project.
-2. Put the project URL and **anon** key in `.env`:
+2. Put the project URL and **publishable** key in `.env`:
 
 ```env
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
 3. Run the SQL in `supabase/migrations/20260324120000_initial_schema.sql` in the Supabase SQL editor.
@@ -105,7 +105,7 @@ On push/PR to `main`:
 Add these under **Settings → Secrets and variables → Actions**:
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 `GITHUB_TOKEN` is provided automatically for deploying to `gh-pages`.
 

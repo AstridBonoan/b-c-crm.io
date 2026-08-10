@@ -7,12 +7,12 @@ let client: SupabaseClient<Database> | null = null
 export function getSupabaseClient(): SupabaseClient<Database> {
   if (!env.isSupabaseConfigured) {
     throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.',
+      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env file.',
     )
   }
 
   if (!client) {
-    client = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+    client = createClient<Database>(env.supabaseUrl, env.supabaseKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

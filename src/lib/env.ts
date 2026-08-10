@@ -1,12 +1,22 @@
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const publishableKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+
+function isPlaceholder(value: string) {
+  return (
+    value.includes('your-project-ref') ||
+    value.includes('your-anon-key') ||
+    value.includes('your-publishable-key')
+  )
+}
 
 export const env = {
   supabaseUrl: typeof supabaseUrl === 'string' ? supabaseUrl : '',
-  supabaseAnonKey: typeof supabaseAnonKey === 'string' ? supabaseAnonKey : '',
+  supabaseKey: typeof publishableKey === 'string' ? publishableKey : '',
   isSupabaseConfigured:
     Boolean(supabaseUrl) &&
-    Boolean(supabaseAnonKey) &&
-    !String(supabaseUrl).includes('your-project-ref') &&
-    !String(supabaseAnonKey).includes('your-anon-key'),
+    Boolean(publishableKey) &&
+    !isPlaceholder(String(supabaseUrl)) &&
+    !isPlaceholder(String(publishableKey)),
 } as const
