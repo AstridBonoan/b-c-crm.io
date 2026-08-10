@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ContactForm } from '@/features/contacts/ContactForm'
 import {
   createContact,
@@ -25,7 +26,7 @@ export function ContactsPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [clientId, setClientId] = useState<string | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Contact | null>(null)

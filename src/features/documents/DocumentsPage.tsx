@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { DocumentForm } from '@/features/documents/DocumentForm'
 import {
   deleteDocument,
@@ -39,7 +40,7 @@ export function DocumentsPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<DocumentRecord | null>(null)
   const [submitting, setSubmitting] = useState(false)

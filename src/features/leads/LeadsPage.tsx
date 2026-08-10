@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { LeadForm } from '@/features/leads/LeadForm'
 import {
   createLead,
@@ -37,7 +38,7 @@ export function LeadsPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [status, setStatus] = useState<LeadStatus | 'all'>('all')
   const [clientId, setClientId] = useState<string | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
