@@ -24,7 +24,7 @@ const navItems: {
   end?: boolean
 }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/companies', label: 'Companies', icon: Building2 },
+  { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
   { to: '/leads', label: 'Leads', icon: Target },
   { to: '/pipeline', label: 'Pipeline', icon: Handshake },

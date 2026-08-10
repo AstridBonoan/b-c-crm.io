@@ -3,6 +3,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { ClientsPage } from '@/features/clients/ClientsPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
 
@@ -15,22 +16,14 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
-            <Route
-              path="companies"
-              element={
-                <ModulePlaceholderPage
-                  title="Companies"
-                  description="Store business and company information for B&C relationships."
-                  branchName="feature/companies"
-                />
-              }
-            />
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="companies" element={<Navigate to="/clients" replace />} />
             <Route
               path="contacts"
               element={
                 <ModulePlaceholderPage
                   title="Contacts"
-                  description="People belonging to companies."
+                  description="People associated with client organizations (and optional contacts for individuals)."
                   branchName="feature/contacts"
                 />
               }

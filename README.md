@@ -120,7 +120,7 @@ Develop one major feature per branch:
 ```text
 feature/authentication
 feature/dashboard
-feature/companies
+feature/clients
 feature/contacts
 feature/leads
 feature/sales-pipeline
@@ -152,7 +152,7 @@ Do not combine unrelated features in one branch.
 Lead → Sales Opportunity / Deal → Customer → Project → Completed Project
 ```
 
-Entities stay related through foreign keys; the CRM does not collapse everything into a single generic “client” record.
+Entities stay related through foreign keys. Top-level accounts are **clients** (organizations or individuals), not a generic “company-only” model.
 
 ---
 
@@ -163,7 +163,7 @@ src/
 ├── components/     # Shared UI
 ├── layouts/        # App shell (sidebar + header)
 ├── lib/            # Supabase client, env helpers
-├── features/       # Feature modules (auth, dashboard, …)
+├── features/       # Feature modules (auth, dashboard, clients, …)
 ├── pages/          # Thin route placeholders for upcoming modules
 ├── types/          # Shared TypeScript / DB types
 ├── App.tsx
@@ -175,7 +175,7 @@ supabase/
 
 ---
 
-## Current status (foundation)
+## Current status
 
 Implemented:
 
@@ -184,11 +184,11 @@ Implemented:
 - Auth foundation (login, session, protected routes, sign out)
 - App layout with sidebar/header
 - Routing with module placeholders
+- **Clients module** (organizations + individuals, CRUD, search/filter)
 - Initial normalized schema + RLS + private storage bucket
 - GitHub Actions build/validate + deploy to `gh-pages`
-- README and `.env.example`
 
-Next: implement modules one at a time on their feature branches, starting with whichever you prioritize (typically companies → contacts → leads).
+Next: `feature/contacts`, then leads / pipeline.
 
 ---
 
