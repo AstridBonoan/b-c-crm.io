@@ -17,7 +17,8 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
 import { Button } from '@/components/ui/Button'
-import bcLogo from '@/assets/bc-logo.png'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const navItems: {
   to: string
@@ -47,29 +48,22 @@ export function AppLayout() {
   return (
     <div className="app-shell-bg flex min-h-full">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-brand-950 text-brand-50 shadow-[4px_0_24px_rgba(12,29,37,0.18)] transition-transform duration-300 ease-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar text-sidebar-text shadow-[4px_0_24px_rgba(10,15,24,0.2)] transition-transform duration-300 ease-out lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <img
-              src={bcLogo}
-              alt="B&C Software & Web"
-              className="h-9 w-9 object-contain"
-            />
+            <BrandLogo variant="dark" className="h-8 w-auto object-contain" />
             <div className="min-w-0">
-              <p className="font-display text-lg font-semibold tracking-tight text-white">
-                B&amp;C
-              </p>
-              <p className="truncate text-[11px] tracking-[0.14em] text-brand-300 uppercase">
+              <p className="text-[11px] tracking-[0.16em] text-teal-bright uppercase">
                 Internal CRM
               </p>
             </div>
           </div>
           <button
             type="button"
-            className="p-1 text-brand-100 lg:hidden"
+            className="p-1 text-sidebar-muted lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           >
@@ -85,17 +79,17 @@ export function AppLayout() {
               end={end}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `group relative flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors duration-150 ${
+                `group relative flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors duration-150 ${
                   isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-brand-100/75 hover:bg-white/5 hover:text-white'
+                    ? 'bg-sidebar-active text-white'
+                    : 'text-sidebar-muted hover:bg-white/5 hover:text-white'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={`absolute inset-y-1 left-0 w-0.5 bg-brand-300 transition-opacity ${
+                    className={`absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-sidebar-accent transition-opacity ${
                       isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
                     }`}
                   />
@@ -107,7 +101,7 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 p-4 text-[11px] leading-relaxed text-brand-300/80">
+        <div className="border-t border-white/10 p-4 text-[11px] leading-relaxed text-sidebar-muted">
           B&amp;C Software &amp; Web
           <br />
           Employee workspace
@@ -117,18 +111,18 @@ export function AppLayout() {
       {mobileOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-brand-950/50 backdrop-blur-[2px] animate-fade-in lg:hidden"
+          className="fixed inset-0 z-30 bg-navy-deep/55 backdrop-blur-[2px] animate-fade-in lg:hidden"
           aria-label="Close menu overlay"
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line/80 bg-white/85 px-4 backdrop-blur-md">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line bg-header px-4 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="border border-line p-1.5 text-ink-muted hover:bg-brand-50 lg:hidden"
+              className="rounded-md border border-line p-1.5 text-ink-muted hover:bg-surface-muted lg:hidden"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
             >
@@ -139,8 +133,9 @@ export function AppLayout() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle />
+            <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-ink">{displayName}</p>
               {profile?.role ? (
                 <p className="text-xs capitalize text-ink-muted">{profile.role}</p>

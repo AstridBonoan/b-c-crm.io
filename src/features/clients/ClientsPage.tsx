@@ -143,7 +143,7 @@ export function ClientsPage() {
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-line bg-brand-50/60 text-[11px] tracking-[0.1em] text-ink-muted uppercase">
+            <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
               <tr>
                 <th className="px-4 py-3 font-semibold">Name</th>
                 <th className="px-4 py-3 font-semibold">Type</th>
@@ -157,7 +157,7 @@ export function ClientsPage() {
               {clients.map((client) => (
                 <tr
                   key={client.id}
-                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40"
+                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-surface-muted/70"
                 >
                   <td className="px-4 py-3 font-medium text-ink">{client.name}</td>
                   <td className="px-4 py-3">
