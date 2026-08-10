@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Panel } from '@/components/ui/Panel'
 
 const placeholderMetrics = [
   { label: 'New leads', value: '—' },
@@ -21,13 +23,19 @@ export function DashboardPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {placeholderMetrics.map((metric) => (
-          <div key={metric.label} className="border border-slate-200 bg-white px-4 py-3">
-            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+        {placeholderMetrics.map((metric, index) => (
+          <Panel
+            key={metric.label}
+            className="px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5 animate-fade-up"
+            style={{ animationDelay: `${index * 40}ms` } as CSSProperties}
+          >
+            <p className="text-[11px] font-semibold tracking-[0.12em] text-ink-muted uppercase">
               {metric.label}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-ink">{metric.value}</p>
-          </div>
+            <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink">
+              {metric.value}
+            </p>
+          </Panel>
         ))}
       </div>
 
