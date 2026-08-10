@@ -11,6 +11,7 @@ import { DealsPage } from '@/features/deals/DealsPage'
 import { CustomersPage } from '@/features/customers/CustomersPage'
 import { ProjectsPage } from '@/features/projects/ProjectsPage'
 import { TasksPage } from '@/features/tasks/TasksPage'
+import { ActivitiesPage } from '@/features/activities/ActivitiesPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -34,16 +35,7 @@ export default function App() {
               <Route path="customers" element={<CustomersPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="tasks" element={<TasksPage />} />
-              <Route
-                path="activities"
-                element={
-                  <ModulePlaceholderPage
-                    title="Activities"
-                    description="Chronological interaction history."
-                    branchName="feature/activities"
-                  />
-                }
-              />
+              <Route path="activities" element={<ActivitiesPage />} />
               <Route
                 path="documents"
                 element={
