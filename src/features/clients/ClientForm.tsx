@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
 import type { Client } from '@/types/database'
-import { clientSchema, type ClientFormValues } from '@/features/clients/schemas'
+import { clientSchema, CLIENT_STATUSES, type ClientFormValues } from '@/features/clients/schemas'
 import { Button } from '@/components/ui/Button'
 
 type ClientFormProps = {
@@ -16,6 +16,7 @@ type ClientFormProps = {
 
 const emptyValues: ClientFormValues = {
   client_type: 'organization',
+  client_status: 'prospect',
   name: '',
   first_name: '',
   last_name: '',
@@ -31,6 +32,7 @@ const emptyValues: ClientFormValues = {
 function toFormValues(client: Client): ClientFormValues {
   return {
     client_type: client.client_type,
+    client_status: client.client_status ?? 'prospect',
     name: client.name ?? '',
     first_name: client.first_name ?? '',
     last_name: client.last_name ?? '',
@@ -83,6 +85,26 @@ export function ClientForm({
           </label>
         </div>
       </fieldset>
+
+      <div>
+        <label htmlFor="client_status" className="block text-sm font-medium text-ink">
+          Status
+        </label>
+        <select
+          id="client_status"
+          className="input-field mt-1 rounded-md"
+          {...register('client_status')}
+        >
+          {CLIENT_STATUSES.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-ink-muted">
+          Prospect = early relationship. Active = working client. Inactive = past client.
+        </p>
+      </div>
 
       {clientType === 'organization' ? (
         <>

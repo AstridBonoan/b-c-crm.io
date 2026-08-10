@@ -9,7 +9,9 @@ import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
 import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { LeadForm } from '@/features/leads/LeadForm'
+import { ConvertLeadForm } from '@/features/leads/ConvertLeadForm'
 import {
+  convertLeadToClient,
   createLead,
   deleteLead,
   listClientOptions,
@@ -23,6 +25,7 @@ import {
   statusLabel,
   type LeadFormValues,
 } from '@/features/leads/schemas'
+import type { ClientFormValues } from '@/features/clients/schemas'
 import type { Client, Lead, LeadStatus } from '@/types/database'
 
 function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'danger' {
@@ -47,6 +50,9 @@ export function LeadsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<LeadWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [converting, setConverting] = useState<LeadWithRelations | null>(null)
+  const [convertBusy, setConvertBusy] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
 
   const loadClients = useCallback(async () => {
     const data = await listClientOptions()
@@ -125,11 +131,31 @@ export function LeadsPage() {
     }
   }
 
+  const openConvert = (lead: LeadWithRelations) => {
+    setConverting(lead)
+    setConvertError(null)
+  }
+
+  const handleConvert = async (values: ClientFormValues) => {
+    if (!converting) return
+    setConvertBusy(true)
+    setConvertError(null)
+    try {
+      await convertLeadToClient(converting, values, user?.id)
+      setConverting(null)
+      await Promise.all([load(), loadClients()])
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : 'Failed to convert lead')
+    } finally {
+      setConvertBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
         title="Leads"
-        description="Track potential customers before they become deals or customers."
+        description="Capture interest first. When they’re ready, convert the lead into a client."
         actions={<Button onClick={openCreate}>Add lead</Button>}
       />
 
@@ -178,7 +204,7 @@ export function LeadsPage() {
       ) : leads.length === 0 ? (
         <EmptyState
           title="No leads yet"
-          description="Capture inbound interest and follow-ups here before converting to a deal or customer."
+          description="Capture inbound interest here, then convert a qualified lead into a client."
           action={<Button onClick={openCreate}>Add lead</Button>}
         />
       ) : (
@@ -219,7 +245,12 @@ export function LeadsPage() {
                     {lead.next_follow_up_at ? lead.next_follow_up_at.slice(0, 10) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {lead.status !== 'converted' ? (
+                        <Button variant="secondary" size="sm" onClick={() => openConvert(lead)}>
+                          Convert
+                        </Button>
+                      ) : null}
                       <Button variant="secondary" size="sm" onClick={() => openEdit(lead)}>
                         Edit
                       </Button>
@@ -263,6 +294,32 @@ export function LeadsPage() {
             }
           }}
         />
+      </Modal>
+
+      <Modal
+        open={Boolean(converting)}
+        title="Convert lead to client"
+        onClose={() => {
+          if (!convertBusy) {
+            setConverting(null)
+            setConvertError(null)
+          }
+        }}
+      >
+        {converting ? (
+          <ConvertLeadForm
+            lead={converting}
+            submitting={convertBusy}
+            formError={convertError}
+            onSubmit={handleConvert}
+            onCancel={() => {
+              if (!convertBusy) {
+                setConverting(null)
+                setConvertError(null)
+              }
+            }}
+          />
+        ) : null}
       </Modal>
 
       <ConfirmDialog

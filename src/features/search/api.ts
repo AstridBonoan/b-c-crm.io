@@ -19,12 +19,6 @@ function clientName(clients: NamedClient | NamedClient[] | null | undefined): st
   return clients.name ?? null
 }
 
-function clientEmail(clients: NamedClient | NamedClient[] | null | undefined): string | null {
-  if (!clients) return null
-  if (Array.isArray(clients)) return clients[0]?.email ?? null
-  return clients.email ?? null
-}
-
 function leadTitle(lead: {
   service_interested: string | null
   source: string | null
@@ -174,49 +168,6 @@ export async function globalSearch(
             .join(' · '),
           href: modulePath('deals', trimmed),
         }))
-      })(),
-    )
-  }
-
-  if (selected.has('customers')) {
-    jobs.push(
-      (async () => {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('id, status, notes, clients(name, email)')
-          .order('updated_at', { ascending: false })
-          .limit(40)
-        if (error) throw new Error(error.message)
-        const rows =
-          (data as
-            | {
-                id: string
-                status: string
-                notes: string | null
-                clients: NamedClient | null
-              }[]
-            | null) ?? []
-        const lower = trimmed.toLowerCase()
-        return rows
-          .filter((row) => {
-            const name = clientName(row.clients)?.toLowerCase() ?? ''
-            const email = clientEmail(row.clients)?.toLowerCase() ?? ''
-            const notes = row.notes?.toLowerCase() ?? ''
-            return (
-              name.includes(lower) ||
-              email.includes(lower) ||
-              notes.includes(lower) ||
-              row.status.toLowerCase().includes(lower)
-            )
-          })
-          .slice(0, LIMIT)
-          .map((row) => ({
-            id: row.id,
-            module: 'customers' as const,
-            title: clientName(row.clients) ?? 'Customer',
-            subtitle: `Customer · ${row.status}`,
-            href: modulePath('customers', trimmed),
-          }))
       })(),
     )
   }

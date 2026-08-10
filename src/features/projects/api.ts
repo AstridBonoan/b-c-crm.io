@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
-import type { Client, Customer, Deal, Project, ProjectStatus } from '@/types/database'
+import type { Client, Deal, Project, ProjectStatus } from '@/types/database'
 import {
   parseMoney,
   parseProgress,
@@ -9,8 +9,7 @@ import {
 } from '@/features/projects/schemas'
 
 export type ProjectWithRelations = Project & {
-  clients: Pick<Client, 'id' | 'name' | 'client_type'> | null
-  customers: Pick<Customer, 'id' | 'client_id' | 'status'> | null
+  clients: Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'> | null
   deals: Pick<Deal, 'id' | 'name'> | null
 }
 
@@ -19,21 +18,17 @@ export type ProjectFilters = {
   status: ProjectStatus | 'all'
 }
 
-export type CustomerOption = {
-  id: string
-  client_id: string
-  clients: Pick<Client, 'id' | 'name' | 'client_type'> | null
-}
-
-export async function listCustomerOptions(): Promise<CustomerOption[]> {
+export async function listClientOptions(): Promise<
+  Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'>[]
+> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from('customers')
-    .select('id, client_id, clients(id, name, client_type)')
-    .order('created_at', { ascending: false })
+    .from('clients')
+    .select('id, name, client_type, client_status')
+    .order('name', { ascending: true })
 
   if (error) throw new Error(error.message)
-  return (data as CustomerOption[] | null) ?? []
+  return data ?? []
 }
 
 export async function listDealsForClient(
@@ -54,9 +49,7 @@ export async function listProjects(filters: ProjectFilters): Promise<ProjectWith
   const supabase = getSupabaseClient()
   let query = supabase
     .from('projects')
-    .select(
-      '*, clients(id, name, client_type), customers(id, client_id, status), deals(id, name)',
-    )
+    .select('*, clients(id, name, client_type, client_status), deals(id, name)')
     .order('updated_at', { ascending: false })
 
   if (filters.status !== 'all') {
@@ -75,24 +68,19 @@ export async function listProjects(filters: ProjectFilters): Promise<ProjectWith
   return (data as ProjectWithRelations[] | null) ?? []
 }
 
-function toPayload(
-  values: ProjectFormValues,
-  clientId: string,
-  userId: string | undefined,
-) {
+function toPayload(values: ProjectFormValues, userId: string | undefined) {
   const status = values.status
   const completionDate =
     status === 'completed'
       ? toNullable(values.completion_date) ?? new Date().toISOString().slice(0, 10)
       : toNullable(values.completion_date)
 
-  const progress =
-    status === 'completed' ? 100 : parseProgress(values.progress)
+  const progress = status === 'completed' ? 100 : parseProgress(values.progress)
 
   return {
     name: values.name.trim(),
-    customer_id: values.customer_id,
-    client_id: clientId,
+    customer_id: null,
+    client_id: values.client_id,
     deal_id: toNullableUuid(values.deal_id),
     project_type: toNullable(values.project_type),
     description: toNullable(values.description),
@@ -109,13 +97,12 @@ function toPayload(
 
 export async function createProject(
   values: ProjectFormValues,
-  clientId: string,
   userId: string | undefined,
 ): Promise<Project> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('projects')
-    .insert(toPayload(values, clientId, userId))
+    .insert(toPayload(values, userId))
     .select('*')
     .single()
 
@@ -123,13 +110,9 @@ export async function createProject(
   return data
 }
 
-export async function updateProject(
-  id: string,
-  values: ProjectFormValues,
-  clientId: string,
-): Promise<Project> {
+export async function updateProject(id: string, values: ProjectFormValues): Promise<Project> {
   const supabase = getSupabaseClient()
-  const payload = toPayload(values, clientId, undefined)
+  const payload = toPayload(values, undefined)
   const { data, error } = await supabase
     .from('projects')
     .update({

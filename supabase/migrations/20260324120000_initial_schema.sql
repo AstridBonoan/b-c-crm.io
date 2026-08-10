@@ -6,6 +6,7 @@ create extension if not exists "pgcrypto";
 
 create type public.user_role as enum ('founder_cto', 'founder_cmo');
 create type public.client_type as enum ('individual', 'organization');
+create type public.client_status as enum ('prospect', 'active', 'inactive');
 create type public.lead_status as enum (
   'new',
   'contacted',
@@ -52,6 +53,7 @@ create table public.profiles (
 create table public.clients (
   id uuid primary key default gen_random_uuid(),
   client_type public.client_type not null default 'organization',
+  client_status public.client_status not null default 'prospect',
   name text not null,
   first_name text,
   last_name text,
@@ -133,7 +135,7 @@ create table public.customers (
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  customer_id uuid not null references public.customers (id) on delete restrict,
+  customer_id uuid references public.customers (id) on delete restrict,
   client_id uuid not null references public.clients (id) on delete restrict,
   deal_id uuid references public.deals (id) on delete set null,
   project_type text,

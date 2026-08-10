@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
-import type { Deal, Project } from '@/types/database'
-import {
-  listDealsForClient,
-  type CustomerOption,
-} from '@/features/projects/api'
+import type { Client, Deal, Project } from '@/types/database'
+import { listDealsForClient } from '@/features/projects/api'
 import {
   PROJECT_STATUSES,
   projectSchema,
@@ -16,16 +13,16 @@ import { Button } from '@/components/ui/Button'
 
 type ProjectFormProps = {
   initial?: Project | null
-  customers: CustomerOption[]
+  clients: Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'>[]
   submitting: boolean
   formError: string | null
-  onSubmit: (values: ProjectFormValues, clientId: string) => Promise<void>
+  onSubmit: (values: ProjectFormValues) => Promise<void>
   onCancel: () => void
 }
 
 const emptyValues: ProjectFormValues = {
   name: '',
-  customer_id: '',
+  client_id: '',
   deal_id: '',
   project_type: '',
   description: '',
@@ -41,7 +38,7 @@ const emptyValues: ProjectFormValues = {
 function toFormValues(project: Project): ProjectFormValues {
   return {
     name: project.name,
-    customer_id: project.customer_id,
+    client_id: project.client_id,
     deal_id: project.deal_id ?? '',
     project_type: project.project_type ?? '',
     description: project.description ?? '',
@@ -60,7 +57,7 @@ function toFormValues(project: Project): ProjectFormValues {
 
 export function ProjectForm({
   initial,
-  customers,
+  clients,
   submitting,
   formError,
   onSubmit,
@@ -81,14 +78,9 @@ export function ProjectForm({
     defaultValues: initial ? toFormValues(initial) : emptyValues,
   })
 
-  const customerId = watch('customer_id')
+  const clientId = watch('client_id')
   const status = watch('status')
   const completionDate = watch('completion_date')
-
-  const selectedCustomer = useMemo(
-    () => customers.find((customer) => customer.id === customerId) ?? null,
-    [customers, customerId],
-  )
 
   useEffect(() => {
     reset(initial ? toFormValues(initial) : emptyValues)
@@ -104,7 +96,6 @@ export function ProjectForm({
   }, [status, completionDate, setValue])
 
   useEffect(() => {
-    const clientId = selectedCustomer?.client_id
     if (!clientId) {
       setDeals([])
       setValue('deal_id', '')
@@ -117,10 +108,11 @@ export function ProjectForm({
         if (!active) return
         setDeals(data)
         setDealsError(null)
-        const dealId = initial?.deal_id
-        if (dealId && data.some((deal) => deal.id === dealId)) {
-          setValue('deal_id', dealId)
-        } else if (!initial) {
+        const preferred =
+          initial?.client_id === clientId ? initial.deal_id : undefined
+        if (preferred && data.some((deal) => deal.id === preferred)) {
+          setValue('deal_id', preferred)
+        } else {
           setValue('deal_id', '')
         }
       })
@@ -133,35 +125,30 @@ export function ProjectForm({
     return () => {
       active = false
     }
-  }, [selectedCustomer?.client_id, initial, setValue])
-
-  const submit = handleSubmit(async (values) => {
-    if (!selectedCustomer) return
-    await onSubmit(values, selectedCustomer.client_id)
-  })
+  }, [clientId, initial, setValue])
 
   return (
-    <form className="space-y-4" onSubmit={submit} noValidate>
+    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <Field id="name" label="Project name" error={errors.name?.message} {...register('name')} />
 
       <div>
-        <label htmlFor="customer_id" className="block text-sm font-medium text-ink">
-          Customer
+        <label htmlFor="client_id" className="block text-sm font-medium text-ink">
+          Client
         </label>
-        <select id="customer_id" className="input-field mt-1 rounded-md" {...register('customer_id')}>
-          <option value="">Select a customer…</option>
-          {customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.clients?.name ?? 'Unknown client'}
+        <select id="client_id" className="input-field mt-1 rounded-md" {...register('client_id')}>
+          <option value="">Select a client…</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
             </option>
           ))}
         </select>
-        {errors.customer_id ? (
-          <p className="mt-1 text-xs text-danger">{errors.customer_id.message}</p>
+        {errors.client_id ? (
+          <p className="mt-1 text-xs text-danger">{errors.client_id.message}</p>
         ) : null}
-        {customers.length === 0 ? (
+        {clients.length === 0 ? (
           <p className="mt-1 text-xs text-ink-muted">
-            No customers yet. Create a customer before adding projects.
+            No clients yet. Create a client before adding projects.
           </p>
         ) : null}
       </div>
@@ -196,7 +183,7 @@ export function ProjectForm({
         <select
           id="deal_id"
           className="input-field mt-1 rounded-md"
-          disabled={!selectedCustomer}
+          disabled={!clientId}
           {...register('deal_id')}
         >
           <option value="">None</option>
@@ -279,7 +266,7 @@ export function ProjectForm({
         <Button variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={submitting || customers.length === 0}>
+        <Button type="submit" disabled={submitting || clients.length === 0}>
           {submitting ? 'Saving…' : initial ? 'Save changes' : 'Create project'}
         </Button>
       </div>
