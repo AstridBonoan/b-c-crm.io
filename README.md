@@ -187,11 +187,12 @@ Implemented:
 - Routing with module placeholders
 - **Clients module** (organizations + individuals, CRUD, search/filter)
 - **Contacts module** (people linked to clients)
+- **Leads module** (status tracking, client/contact links, follow-ups)
 - Initial normalized schema + RLS + private storage bucket
 - GitHub Actions build/validate + deploy to `gh-pages`
 - B&C brand theme with light/dark toggle
 
-Next: `feature/leads`, then pipeline / deals.
+Next: `feature/sales-pipeline`, then deals / customers.
 
 ---
 
