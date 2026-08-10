@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { TaskForm } from '@/features/tasks/TaskForm'
 import {
   createTask,
@@ -50,7 +51,7 @@ export function TasksPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)

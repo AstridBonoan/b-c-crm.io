@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ProjectForm } from '@/features/projects/ProjectForm'
 import {
   createProject,
@@ -39,7 +40,7 @@ export function ProjectsPage() {
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [status, setStatus] = useState<ProjectStatus | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Project | null>(null)

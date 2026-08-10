@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ClientForm } from '@/features/clients/ClientForm'
 import {
   createClient,
@@ -22,7 +23,7 @@ export function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [clientType, setClientType] = useState<'all' | ClientType>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)

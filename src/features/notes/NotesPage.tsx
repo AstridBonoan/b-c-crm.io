@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { NoteForm } from '@/features/notes/NoteForm'
 import {
   createNote,
@@ -43,7 +44,7 @@ export function NotesPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Note | null>(null)
   const [submitting, setSubmitting] = useState(false)

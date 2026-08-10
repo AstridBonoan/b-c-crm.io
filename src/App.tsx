@@ -14,9 +14,9 @@ import { TasksPage } from '@/features/tasks/TasksPage'
 import { ActivitiesPage } from '@/features/activities/ActivitiesPage'
 import { NotesPage } from '@/features/notes/NotesPage'
 import { DocumentsPage } from '@/features/documents/DocumentsPage'
+import { SearchPage } from '@/features/search/SearchPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
-import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
 
 export default function App() {
   return (
@@ -40,16 +40,7 @@ export default function App() {
               <Route path="activities" element={<ActivitiesPage />} />
               <Route path="notes" element={<NotesPage />} />
               <Route path="documents" element={<DocumentsPage />} />
-              <Route
-                path="search"
-                element={
-                  <ModulePlaceholderPage
-                    title="Search"
-                    description="Global and module-specific search and filtering."
-                    branchName="feature/search-filtering"
-                  />
-                }
-              />
+              <Route path="search" element={<SearchPage />} />
             </Route>
           </Route>
 
