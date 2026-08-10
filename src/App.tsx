@@ -12,6 +12,7 @@ import { CustomersPage } from '@/features/customers/CustomersPage'
 import { ProjectsPage } from '@/features/projects/ProjectsPage'
 import { TasksPage } from '@/features/tasks/TasksPage'
 import { ActivitiesPage } from '@/features/activities/ActivitiesPage'
+import { NotesPage } from '@/features/notes/NotesPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="tasks" element={<TasksPage />} />
               <Route path="activities" element={<ActivitiesPage />} />
+              <Route path="notes" element={<NotesPage />} />
               <Route
                 path="documents"
                 element={
