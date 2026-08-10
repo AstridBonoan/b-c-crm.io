@@ -31,10 +31,9 @@ const navItems: {
   end?: boolean
 }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/team', label: 'Team', icon: UsersRound },
+  { to: '/leads', label: 'Leads', icon: Target },
   { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
-  { to: '/leads', label: 'Leads', icon: Target },
   { to: '/pipeline', label: 'Pipeline', icon: Handshake },
   { to: '/deals', label: 'Deals', icon: Briefcase },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
@@ -44,6 +43,7 @@ const navItems: {
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/analytics', label: 'Analytics', icon: ChartColumn },
+  { to: '/team', label: 'Team', icon: UsersRound },
 ]
 
 export function AppLayout() {
