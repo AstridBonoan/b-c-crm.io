@@ -91,6 +91,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
+  const signUp = useCallback(async (email: string, password: string) => {
+    const supabase = tryGetSupabaseClient()
+    if (!supabase) {
+      return {
+        error:
+          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
+        needsEmailConfirmation: false,
+      }
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: email.split('@')[0] },
+      },
+    })
+
+    if (error) {
+      return { error: error.message, needsEmailConfirmation: false }
+    }
+
+    const needsEmailConfirmation = Boolean(data.user) && !data.session
+    return { error: null, needsEmailConfirmation }
+  }, [])
+
   const signOut = useCallback(async () => {
     const supabase = tryGetSupabaseClient()
     if (!supabase) return
@@ -106,9 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       configured,
       signIn,
+      signUp,
       signOut,
     }),
-    [session, profile, loading, configured, signIn, signOut],
+    [session, profile, loading, configured, signIn, signUp, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
