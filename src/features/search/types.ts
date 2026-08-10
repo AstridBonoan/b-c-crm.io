@@ -3,7 +3,6 @@ export const SEARCH_MODULES = [
   { id: 'contacts', label: 'Contacts', path: '/contacts' },
   { id: 'leads', label: 'Leads', path: '/leads' },
   { id: 'deals', label: 'Deals', path: '/deals' },
-  { id: 'customers', label: 'Customers', path: '/customers' },
   { id: 'projects', label: 'Projects', path: '/projects' },
   { id: 'tasks', label: 'Tasks', path: '/tasks' },
   { id: 'activities', label: 'Activities', path: '/activities' },

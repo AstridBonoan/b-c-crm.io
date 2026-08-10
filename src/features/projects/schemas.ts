@@ -11,7 +11,7 @@ export const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
 
 export const projectSchema = z.object({
   name: z.string().trim().min(1, 'Project name is required'),
-  customer_id: z.string().uuid('Select a customer'),
+  client_id: z.string().uuid('Select a client'),
   deal_id: z.string().optional(),
   project_type: z.string().optional(),
   description: z.string().optional(),

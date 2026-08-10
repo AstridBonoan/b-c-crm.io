@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import type { Client, Contact, Lead, LeadStatus } from '@/types/database'
+import { createClient, setClientStatus } from '@/features/clients/api'
+import type { ClientFormValues } from '@/features/clients/schemas'
 import {
   parseMoney,
   toNullable,
@@ -8,8 +10,8 @@ import {
 } from '@/features/leads/schemas'
 
 export type LeadWithRelations = Lead & {
-  clients: Pick<Client, 'id' | 'name' | 'client_type'> | null
-  contacts: Pick<Contact, 'id' | 'first_name' | 'last_name'> | null
+  clients: Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'> | null
+  contacts: Pick<Contact, 'id' | 'first_name' | 'last_name' | 'email' | 'phone'> | null
 }
 
 export type LeadFilters = {
@@ -18,11 +20,13 @@ export type LeadFilters = {
   clientId: string | 'all'
 }
 
-export async function listClientOptions(): Promise<Pick<Client, 'id' | 'name' | 'client_type'>[]> {
+export async function listClientOptions(): Promise<
+  Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'>[]
+> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('clients')
-    .select('id, name, client_type')
+    .select('id, name, client_type, client_status')
     .order('name', { ascending: true })
 
   if (error) throw new Error(error.message)
@@ -47,7 +51,9 @@ export async function listLeads(filters: LeadFilters): Promise<LeadWithRelations
   const supabase = getSupabaseClient()
   let query = supabase
     .from('leads')
-    .select('*, clients(id, name, client_type), contacts(id, first_name, last_name)')
+    .select(
+      '*, clients(id, name, client_type, client_status), contacts(id, first_name, last_name, email, phone)',
+    )
     .order('created_at', { ascending: false })
 
   if (filters.status !== 'all') {
@@ -122,6 +128,44 @@ export async function updateLead(id: string, values: LeadFormValues): Promise<Le
 
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function convertLeadToClient(
+  lead: LeadWithRelations,
+  values: ClientFormValues,
+  userId: string | undefined,
+): Promise<{ client: Client; lead: Lead }> {
+  const supabase = getSupabaseClient()
+  let client: Client
+
+  if (lead.client_id) {
+    client = await setClientStatus(lead.client_id, 'active')
+  } else {
+    client = await createClient(
+      {
+        ...values,
+        client_status: 'active',
+        notes:
+          values.notes?.trim() ||
+          [lead.service_interested, lead.source, lead.notes].filter(Boolean).join(' · ') ||
+          undefined,
+      },
+      userId,
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('leads')
+    .update({
+      client_id: client.id,
+      status: 'converted',
+    })
+    .eq('id', lead.id)
+    .select('*')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return { client, lead: data }
 }
 
 export async function deleteLead(id: string): Promise<void> {

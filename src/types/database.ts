@@ -11,10 +11,12 @@ export type Profile = {
 }
 
 export type ClientType = 'individual' | 'organization'
+export type ClientStatus = 'prospect' | 'active' | 'inactive'
 
 export type Client = {
   id: string
   client_type: ClientType
+  client_status: ClientStatus
   name: string
   first_name: string | null
   last_name: string | null
@@ -119,7 +121,7 @@ export type ProjectStatus =
 export type Project = {
   id: string
   name: string
-  customer_id: string
+  customer_id: string | null
   client_id: string
   deal_id: string | null
   project_type: string | null
@@ -232,6 +234,7 @@ export type Database = {
     Enums: {
       user_role: UserRole
       client_type: ClientType
+      client_status: ClientStatus
       lead_status: LeadStatus
       deal_stage: DealStage
       project_status: ProjectStatus

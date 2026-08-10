@@ -5,7 +5,7 @@ export type DashboardMetrics = {
   newLeads: number
   activeOpportunities: number
   openDeals: number
-  activeCustomers: number
+  activeClients: number
   activeProjects: number
   completedProjects: number
   potentialRevenue: number
@@ -67,14 +67,14 @@ export async function loadDashboard(): Promise<DashboardData> {
   const [
     leadsResult,
     dealsResult,
-    customersResult,
+    clientsResult,
     projectsResult,
     activitiesResult,
     tasksResult,
   ] = await Promise.all([
     supabase.from('leads').select('status'),
     supabase.from('deals').select('stage, estimated_value, proposal_amount'),
-    supabase.from('customers').select('status'),
+    supabase.from('clients').select('client_status'),
     supabase.from('projects').select('status, project_value'),
     supabase
       .from('activities')
@@ -91,7 +91,7 @@ export async function loadDashboard(): Promise<DashboardData> {
 
   if (leadsResult.error) throw new Error(leadsResult.error.message)
   if (dealsResult.error) throw new Error(dealsResult.error.message)
-  if (customersResult.error) throw new Error(customersResult.error.message)
+  if (clientsResult.error) throw new Error(clientsResult.error.message)
   if (projectsResult.error) throw new Error(projectsResult.error.message)
   if (activitiesResult.error) throw new Error(activitiesResult.error.message)
   if (tasksResult.error) throw new Error(tasksResult.error.message)
@@ -105,7 +105,7 @@ export async function loadDashboard(): Promise<DashboardData> {
           proposal_amount: number | null
         }[]
       | null) ?? []
-  const customers = (customersResult.data as { status: string }[] | null) ?? []
+  const clients = (clientsResult.data as { client_status: string }[] | null) ?? []
   const projects =
     (projectsResult.data as { status: ProjectStatus; project_value: number | null }[] | null) ??
     []
@@ -121,7 +121,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     activeOpportunities: leads.filter((lead) => ACTIVE_LEAD_STATUSES.includes(lead.status))
       .length,
     openDeals: openDeals.length,
-    activeCustomers: customers.filter((customer) => customer.status === 'active').length,
+    activeClients: clients.filter((client) => client.client_status === 'active').length,
     activeProjects: activeProjects.length,
     completedProjects: completedProjects.length,
     potentialRevenue: openDeals.reduce(

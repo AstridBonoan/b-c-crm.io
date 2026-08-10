@@ -59,9 +59,9 @@ export function DashboardPage() {
     },
     { label: 'Open deals', value: metrics ? String(metrics.openDeals) : '—', to: '/pipeline' },
     {
-      label: 'Active customers',
-      value: metrics ? String(metrics.activeCustomers) : '—',
-      to: '/customers',
+      label: 'Active clients',
+      value: metrics ? String(metrics.activeClients) : '—',
+      to: '/clients?status=active',
     },
     {
       label: 'Active projects',
