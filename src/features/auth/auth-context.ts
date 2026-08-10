@@ -12,6 +12,7 @@ export type AuthContextValue = {
   signUp: (
     email: string,
     password: string,
+    options?: { fullName?: string; role?: 'founder_cto' | 'founder_cmo' },
   ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>

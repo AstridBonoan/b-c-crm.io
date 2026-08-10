@@ -91,31 +91,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const supabase = tryGetSupabaseClient()
-    if (!supabase) {
-      return {
-        error:
-          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
-        needsEmailConfirmation: false,
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      options?: { fullName?: string; role?: 'founder_cto' | 'founder_cmo' },
+    ) => {
+      const supabase = tryGetSupabaseClient()
+      if (!supabase) {
+        return {
+          error:
+            'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
+          needsEmailConfirmation: false,
+        }
       }
-    }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: email.split('@')[0] },
-      },
-    })
+      const fullName = options?.fullName?.trim() || email.split('@')[0]
+      const role = options?.role === 'founder_cmo' ? 'founder_cmo' : 'founder_cto'
 
-    if (error) {
-      return { error: error.message, needsEmailConfirmation: false }
-    }
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role,
+          },
+        },
+      })
 
-    const needsEmailConfirmation = Boolean(data.user) && !data.session
-    return { error: null, needsEmailConfirmation }
-  }, [])
+      if (error) {
+        return { error: error.message, needsEmailConfirmation: false }
+      }
+
+      const needsEmailConfirmation = Boolean(data.user) && !data.session
+      return { error: null, needsEmailConfirmation }
+    },
+    [],
+  )
 
   const signOut = useCallback(async () => {
     const supabase = tryGetSupabaseClient()

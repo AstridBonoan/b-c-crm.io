@@ -301,7 +301,11 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
-    'founder_cto'::public.user_role
+    case
+      when coalesce(new.raw_user_meta_data ->> 'role', '') = 'founder_cmo'
+        then 'founder_cmo'::public.user_role
+      else 'founder_cto'::public.user_role
+    end
   );
   return new;
 end;
