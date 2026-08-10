@@ -10,9 +10,14 @@ export type Profile = {
   updated_at: string
 }
 
-export type Company = {
+export type ClientType = 'individual' | 'organization'
+
+export type Client = {
   id: string
+  client_type: ClientType
   name: string
+  first_name: string | null
+  last_name: string | null
   industry: string | null
   website: string | null
   email: string | null
@@ -27,7 +32,7 @@ export type Company = {
 
 export type Contact = {
   id: string
-  company_id: string
+  client_id: string
   first_name: string
   last_name: string
   job_title: string | null
@@ -49,7 +54,7 @@ export type LeadStatus =
 
 export type Lead = {
   id: string
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   source: string | null
   service_interested: string | null
@@ -76,7 +81,7 @@ export type DealStage =
 export type Deal = {
   id: string
   name: string
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   lead_id: string | null
   service: string | null
@@ -93,7 +98,7 @@ export type Deal = {
 
 export type Customer = {
   id: string
-  company_id: string
+  client_id: string
   converted_from_deal_id: string | null
   converted_from_lead_id: string | null
   status: 'active' | 'inactive'
@@ -115,7 +120,7 @@ export type Project = {
   id: string
   name: string
   customer_id: string
-  company_id: string
+  client_id: string
   deal_id: string | null
   project_type: string | null
   description: string | null
@@ -143,7 +148,7 @@ export type Task = {
   due_date: string | null
   priority: TaskPriority
   status: TaskStatus
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   deal_id: string | null
   project_id: string | null
@@ -157,7 +162,7 @@ export type Activity = {
   type: string
   summary: string
   details: string | null
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   lead_id: string | null
   deal_id: string | null
@@ -172,7 +177,7 @@ export type Activity = {
 export type Note = {
   id: string
   body: string
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   lead_id: string | null
   deal_id: string | null
@@ -189,7 +194,7 @@ export type DocumentRecord = {
   storage_path: string
   mime_type: string | null
   size_bytes: number | null
-  company_id: string | null
+  client_id: string | null
   contact_id: string | null
   lead_id: string | null
   deal_id: string | null
@@ -211,7 +216,7 @@ export type Database = {
   public: {
     Tables: {
       profiles: TableDef<Profile>
-      companies: TableDef<Company>
+      clients: TableDef<Client>
       contacts: TableDef<Contact>
       leads: TableDef<Lead>
       deals: TableDef<Deal>
@@ -226,6 +231,7 @@ export type Database = {
     Functions: Record<string, never>
     Enums: {
       user_role: UserRole
+      client_type: ClientType
       lead_status: LeadStatus
       deal_stage: DealStage
       project_status: ProjectStatus

@@ -5,6 +5,7 @@
 create extension if not exists "pgcrypto";
 
 create type public.user_role as enum ('admin', 'manager', 'sales', 'developer');
+create type public.client_type as enum ('individual', 'organization');
 create type public.lead_status as enum (
   'new',
   'contacted',
@@ -48,9 +49,12 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.companies (
+create table public.clients (
   id uuid primary key default gen_random_uuid(),
+  client_type public.client_type not null default 'organization',
   name text not null,
+  first_name text,
+  last_name text,
   industry text,
   website text,
   email text,
@@ -65,7 +69,7 @@ create table public.companies (
 
 create table public.contacts (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references public.companies (id) on delete cascade,
+  client_id uuid not null references public.clients (id) on delete cascade,
   first_name text not null,
   last_name text not null,
   job_title text,
@@ -79,7 +83,7 @@ create table public.contacts (
 
 create table public.leads (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid references public.companies (id) on delete set null,
+  client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
   source text,
   service_interested text,
@@ -97,7 +101,7 @@ create table public.leads (
 create table public.deals (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  company_id uuid references public.companies (id) on delete set null,
+  client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
   lead_id uuid references public.leads (id) on delete set null,
   service text,
@@ -114,7 +118,7 @@ create table public.deals (
 
 create table public.customers (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references public.companies (id) on delete restrict,
+  client_id uuid not null references public.clients (id) on delete restrict,
   converted_from_deal_id uuid references public.deals (id) on delete set null,
   converted_from_lead_id uuid references public.leads (id) on delete set null,
   status text not null default 'active' check (status in ('active', 'inactive')),
@@ -123,14 +127,14 @@ create table public.customers (
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (company_id)
+  unique (client_id)
 );
 
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   customer_id uuid not null references public.customers (id) on delete restrict,
-  company_id uuid not null references public.companies (id) on delete restrict,
+  client_id uuid not null references public.clients (id) on delete restrict,
   deal_id uuid references public.deals (id) on delete set null,
   project_type text,
   description text,
@@ -155,7 +159,7 @@ create table public.tasks (
   due_date date,
   priority public.task_priority not null default 'medium',
   status public.task_status not null default 'todo',
-  company_id uuid references public.companies (id) on delete set null,
+  client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
   deal_id uuid references public.deals (id) on delete set null,
   project_id uuid references public.projects (id) on delete set null,
@@ -169,7 +173,7 @@ create table public.activities (
   type text not null,
   summary text not null,
   details text,
-  company_id uuid references public.companies (id) on delete set null,
+  client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
   lead_id uuid references public.leads (id) on delete set null,
   deal_id uuid references public.deals (id) on delete set null,
@@ -184,7 +188,7 @@ create table public.activities (
 create table public.notes (
   id uuid primary key default gen_random_uuid(),
   body text not null,
-  company_id uuid references public.companies (id) on delete cascade,
+  client_id uuid references public.clients (id) on delete cascade,
   contact_id uuid references public.contacts (id) on delete cascade,
   lead_id uuid references public.leads (id) on delete cascade,
   deal_id uuid references public.deals (id) on delete cascade,
@@ -195,7 +199,7 @@ create table public.notes (
   updated_at timestamptz not null default now(),
   constraint notes_has_parent check (
     num_nonnulls(
-      company_id,
+      client_id,
       contact_id,
       lead_id,
       deal_id,
@@ -211,7 +215,7 @@ create table public.documents (
   storage_path text not null unique,
   mime_type text,
   size_bytes bigint,
-  company_id uuid references public.companies (id) on delete set null,
+  client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
   lead_id uuid references public.leads (id) on delete set null,
   deal_id uuid references public.deals (id) on delete set null,
@@ -222,11 +226,13 @@ create table public.documents (
   updated_at timestamptz not null default now()
 );
 
-create index contacts_company_id_idx on public.contacts (company_id);
+create index clients_client_type_idx on public.clients (client_type);
+create index clients_name_idx on public.clients (name);
+create index contacts_client_id_idx on public.contacts (client_id);
 create index leads_status_idx on public.leads (status);
 create index leads_assigned_to_idx on public.leads (assigned_to);
 create index deals_stage_idx on public.deals (stage);
-create index deals_company_id_idx on public.deals (company_id);
+create index deals_client_id_idx on public.deals (client_id);
 create index projects_customer_id_idx on public.projects (customer_id);
 create index projects_status_idx on public.projects (status);
 create index tasks_assigned_to_idx on public.tasks (assigned_to);
@@ -247,8 +253,8 @@ create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
-create trigger companies_set_updated_at
-before update on public.companies
+create trigger clients_set_updated_at
+before update on public.clients
 for each row execute function public.set_updated_at();
 
 create trigger contacts_set_updated_at
@@ -320,7 +326,7 @@ as $$
 $$;
 
 alter table public.profiles enable row level security;
-alter table public.companies enable row level security;
+alter table public.clients enable row level security;
 alter table public.contacts enable row level security;
 alter table public.leads enable row level security;
 alter table public.deals enable row level security;
@@ -345,8 +351,8 @@ to authenticated
 using (auth.uid() = id and public.is_active_employee())
 with check (auth.uid() = id and public.is_active_employee());
 
-create policy "Employees manage companies"
-on public.companies for all
+create policy "Employees manage clients"
+on public.clients for all
 to authenticated
 using (public.is_active_employee())
 with check (public.is_active_employee());
