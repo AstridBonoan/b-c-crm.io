@@ -120,6 +120,7 @@ Develop one major feature per branch:
 ```text
 feature/authentication
 feature/dashboard
+feature/look-and-feel
 feature/clients
 feature/contacts
 feature/leads

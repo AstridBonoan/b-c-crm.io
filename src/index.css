@@ -1,19 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #eef5f8;
-  --color-brand-100: #d5e7ef;
-  --color-brand-200: #abcddc;
-  --color-brand-300: #7aafc4;
-  --color-brand-400: #4d8fa8;
+  --color-brand-50: #eef6f9;
+  --color-brand-100: #d4e8f0;
+  --color-brand-200: #a9d0e0;
+  --color-brand-300: #74b0c8;
+  --color-brand-400: #4590ab;
   --color-brand-500: #2f738c;
   --color-brand-600: #245c71;
-  --color-brand-700: #1e4a5b;
-  --color-brand-800: #1a3d4b;
-  --color-brand-900: #163340;
-  --color-surface: #f4f6f8;
-  --color-ink: #15202b;
+  --color-brand-700: #1d4a5c;
+  --color-brand-800: #1a3d4c;
+  --color-brand-900: #142f3a;
+  --color-brand-950: #0c1d25;
+  --color-surface: #edf1f4;
+  --color-surface-elevated: #ffffff;
+  --color-ink: #121a22;
+  --color-ink-muted: #5b6b78;
+  --color-line: #d5dee5;
+  --color-danger: #b42318;
+  --color-danger-soft: #fef3f2;
+  --color-success: #067647;
+  --color-success-soft: #ecfdf3;
   --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-display: "IBM Plex Serif", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow-panel: 0 1px 0 rgba(18, 26, 34, 0.04), 0 8px 24px rgba(18, 26, 34, 0.06);
+  --shadow-float: 0 12px 40px rgba(12, 29, 37, 0.18);
 }
 
 @layer base {
@@ -29,5 +41,96 @@
     color: var(--color-ink);
     background-color: var(--color-surface);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-brand-300) 55%, white);
+    color: var(--color-ink);
+  }
+}
+
+@layer utilities {
+  .app-shell-bg {
+    background-color: var(--color-surface);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 100% -10%, rgba(116, 176, 200, 0.22), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 0% 100%, rgba(36, 92, 113, 0.08), transparent 50%),
+      linear-gradient(180deg, #f3f6f8 0%, var(--color-surface) 100%);
+  }
+
+  .auth-atmosphere {
+    background-color: #0c1d25;
+    background-image:
+      radial-gradient(ellipse 90% 70% at 15% 20%, rgba(69, 144, 171, 0.45), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 85% 80%, rgba(29, 74, 92, 0.7), transparent 50%),
+      linear-gradient(160deg, #0c1d25 0%, #142f3a 45%, #1d4a5c 100%);
+  }
+
+  .panel {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface-elevated);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .input-field {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .input-field:focus {
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 0 3px rgba(47, 115, 140, 0.18);
+  }
+
+  .animate-fade-up {
+    animation: fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 280ms ease both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

@@ -16,6 +16,7 @@ import {
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
+import { Button } from '@/components/ui/Button'
 
 const navItems: {
   to: string
@@ -43,20 +44,24 @@ export function AppLayout() {
   const displayName = profile?.full_name ?? user?.email ?? 'Employee'
 
   return (
-    <div className="flex min-h-full">
+    <div className="app-shell-bg flex min-h-full">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-brand-800/40 bg-brand-900 text-brand-50 transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-brand-950 text-brand-50 shadow-[4px_0_24px_rgba(12,29,37,0.18)] transition-transform duration-300 ease-out lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
-          <div>
-            <p className="text-[11px] tracking-[0.16em] text-brand-200 uppercase">B&amp;C</p>
-            <p className="text-sm font-semibold">Internal CRM</p>
+        <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+          <div className="min-w-0">
+            <p className="font-display text-lg font-semibold tracking-tight text-white">
+              B&amp;C
+            </p>
+            <p className="truncate text-[11px] tracking-[0.14em] text-brand-300 uppercase">
+              Internal CRM
+            </p>
           </div>
           <button
             type="button"
-            className="rounded p-1 text-brand-100 lg:hidden"
+            className="p-1 text-brand-100 lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           >
@@ -64,7 +69,7 @@ export function AppLayout() {
           </button>
         </div>
 
-        <nav className="space-y-0.5 p-3">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -72,42 +77,57 @@ export function AppLayout() {
               end={end}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                `group relative flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors duration-150 ${
                   isActive
                     ? 'bg-white/10 text-white'
-                    : 'text-brand-100/80 hover:bg-white/5 hover:text-white'
+                    : 'text-brand-100/75 hover:bg-white/5 hover:text-white'
                 }`
               }
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`absolute inset-y-1 left-0 w-0.5 bg-brand-300 transition-opacity ${
+                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                    }`}
+                  />
+                  <Icon className="h-4 w-4 shrink-0 opacity-90" />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
+
+        <div className="border-t border-white/10 p-4 text-[11px] leading-relaxed text-brand-300/80">
+          B&amp;C Software &amp; Web
+          <br />
+          Employee workspace
+        </div>
       </aside>
 
       {mobileOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-brand-950/50 backdrop-blur-[2px] animate-fade-in lg:hidden"
           aria-label="Close menu overlay"
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line/80 bg-white/85 px-4 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="rounded border border-slate-200 p-1.5 text-slate-700 lg:hidden"
+              className="border border-line p-1.5 text-ink-muted hover:bg-brand-50 lg:hidden"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <p className="hidden text-sm text-slate-500 sm:block">
-              Employee workspace — not customer-facing
+            <p className="hidden text-sm text-ink-muted sm:block">
+              Internal use only — not a customer portal
             </p>
           </div>
 
@@ -115,21 +135,19 @@ export function AppLayout() {
             <div className="text-right">
               <p className="text-sm font-medium text-ink">{displayName}</p>
               {profile?.role ? (
-                <p className="text-xs capitalize text-slate-500">{profile.role}</p>
+                <p className="text-xs capitalize text-ink-muted">{profile.role}</p>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-            >
+            <Button variant="secondary" size="sm" onClick={() => void signOut()}>
               Sign out
-            </button>
+            </Button>
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6">
-          <Outlet />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl animate-fade-up">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

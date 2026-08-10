@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
 import type { Client } from '@/types/database'
 import { clientSchema, type ClientFormValues } from '@/features/clients/schemas'
+import { Button } from '@/components/ui/Button'
 
 type ClientFormProps = {
   initial?: Client | null
@@ -70,8 +71,8 @@ export function ClientForm({
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-slate-700">Client type</legend>
-        <div className="flex gap-4 text-sm">
+        <legend className="text-sm font-medium text-ink">Client type</legend>
+        <div className="flex gap-4 text-sm text-ink">
           <label className="inline-flex items-center gap-2">
             <input type="radio" value="organization" {...register('client_type')} />
             Organization
@@ -141,51 +142,32 @@ export function ClientForm({
       />
 
       <div>
-        <label htmlFor="address" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="address" className="block text-sm font-medium text-ink">
           Address
         </label>
-        <textarea
-          id="address"
-          rows={2}
-          className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
-          {...register('address')}
-        />
+        <textarea id="address" rows={2} className="input-field mt-1" {...register('address')} />
       </div>
 
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="notes" className="block text-sm font-medium text-ink">
           Notes
         </label>
-        <textarea
-          id="notes"
-          rows={3}
-          className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
-          {...register('notes')}
-        />
+        <textarea id="notes" rows={3} className="input-field mt-1" {...register('notes')} />
       </div>
 
       {formError ? (
-        <p className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
           {formError}
         </p>
       ) : null}
 
       <div className="flex justify-end gap-2 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={submitting}
-          className="border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
+        <Button variant="secondary" onClick={onCancel} disabled={submitting}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-brand-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Saving…' : initial ? 'Save changes' : 'Create client'}
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -199,15 +181,11 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 function Field({ id, label, error, ...props }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-ink">
         {label}
       </label>
-      <input
-        id={id}
-        className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
-        {...props}
-      />
-      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
+      <input id={id} className="input-field mt-1" {...props} />
+      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 type ConfirmDialogProps = {
   open: boolean
@@ -26,26 +27,16 @@ export function ConfirmDialog({
       onClose={onCancel}
       footer={
         <>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={busy}
-            className="border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-          >
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={busy}
-            className="bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
-          >
+          </Button>
+          <Button variant="danger" onClick={onConfirm} disabled={busy}>
             {busy ? 'Working…' : confirmLabel}
-          </button>
+          </Button>
         </>
       }
     >
-      <p className="text-sm text-slate-600">{message}</p>
+      <p className="text-sm text-ink-muted">{message}</p>
     </Modal>
   )
 }

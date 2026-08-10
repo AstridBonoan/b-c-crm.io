@@ -3,6 +3,9 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
 import { ClientForm } from '@/features/clients/ClientForm'
 import {
@@ -100,13 +103,7 @@ export function ClientsPage() {
         title="Clients"
         description="Organizations and individuals B&C works with. Contacts, leads, and projects link to these records."
         actions={
-          <button
-            type="button"
-            onClick={openCreate}
-            className="bg-brand-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-800"
-          >
-            Add client
-          </button>
+          <Button onClick={openCreate}>Add client</Button>
         }
       />
 
@@ -116,12 +113,12 @@ export function ClientsPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search name, email, phone, industry…"
-          className="w-full border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 sm:max-w-sm"
+          className="input-field sm:max-w-sm"
         />
         <select
           value={clientType}
           onChange={(event) => setClientType(event.target.value as 'all' | ClientType)}
-          className="border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
+          className="input-field sm:w-auto"
         >
           <option value="all">All types</option>
           <option value="organization">Organizations</option>
@@ -130,73 +127,67 @@ export function ClientsPage() {
       </div>
 
       {error ? (
-        <p className="mb-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <div className="border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
-          Loading clients…
-        </div>
+        <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading clients…</Panel>
       ) : clients.length === 0 ? (
         <EmptyState
           title="No clients yet"
           description="Add an organization or individual to start tracking relationships."
-          action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="bg-brand-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-800"
-            >
-              Add client
-            </button>
-          }
+          action={<Button onClick={openCreate}>Add client</Button>}
         />
       ) : (
-        <div className="overflow-x-auto border border-slate-200 bg-white">
+        <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
+            <thead className="border-b border-line bg-brand-50/60 text-[11px] tracking-[0.1em] text-ink-muted uppercase">
               <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th className="px-4 py-3 font-semibold">Name</th>
+                <th className="px-4 py-3 font-semibold">Type</th>
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Phone</th>
+                <th className="px-4 py-3 font-semibold">Location</th>
+                <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {clients.map((client) => (
-                <tr key={client.id} className="border-b border-slate-100 last:border-0">
+                <tr
+                  key={client.id}
+                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40"
+                >
                   <td className="px-4 py-3 font-medium text-ink">{client.name}</td>
-                  <td className="px-4 py-3 capitalize text-slate-600">{client.client_type}</td>
-                  <td className="px-4 py-3 text-slate-600">{client.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{client.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{client.location ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={client.client_type === 'individual' ? 'brand' : 'neutral'}>
+                      {client.client_type}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">{client.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-muted">{client.phone ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-muted">{client.location ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(client)}
-                        className="border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => openEdit(client)}>
                         Edit
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger hover:bg-danger-soft"
                         onClick={() => setDeleting(client)}
-                        className="border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Panel>
       )}
 
       <Modal
