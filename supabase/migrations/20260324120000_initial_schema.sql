@@ -4,7 +4,7 @@
 
 create extension if not exists "pgcrypto";
 
-create type public.user_role as enum ('admin', 'manager', 'sales', 'developer');
+create type public.user_role as enum ('founder_cto', 'founder_cmo');
 create type public.client_type as enum ('individual', 'organization');
 create type public.lead_status as enum (
   'new',
@@ -43,7 +43,7 @@ create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null unique,
   full_name text,
-  role public.user_role not null default 'sales',
+  role public.user_role not null default 'founder_cto',
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -296,11 +296,12 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name)
+  insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+    'founder_cto'::public.user_role
   );
   return new;
 end;
@@ -337,19 +338,18 @@ alter table public.activities enable row level security;
 alter table public.notes enable row level security;
 alter table public.documents enable row level security;
 
--- Authenticated active employees can read CRM data.
--- Role-based write restrictions can be tightened on feature/user-roles.
+-- Soft founder roles: equal access; titles mark primary lanes only.
 
 create policy "Employees can read profiles"
 on public.profiles for select
 to authenticated
 using (public.is_active_employee());
 
-create policy "Employees can update own profile basics"
+create policy "Employees can update profiles"
 on public.profiles for update
 to authenticated
-using (auth.uid() = id and public.is_active_employee())
-with check (auth.uid() = id and public.is_active_employee());
+using (public.is_active_employee())
+with check (public.is_active_employee());
 
 create policy "Employees manage clients"
 on public.clients for all
