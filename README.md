@@ -189,11 +189,12 @@ Implemented:
 - **Contacts module** (people linked to clients)
 - **Leads module** (status tracking, client/contact links, follow-ups)
 - **Sales pipeline** (Kanban board for deals by stage)
+- **Deals module** (table view, filters, totals; shared with pipeline)
 - Initial normalized schema + RLS + private storage bucket
 - GitHub Actions build/validate + deploy to `gh-pages`
 - B&C brand theme with light/dark toggle
 
-Next: `feature/deals` polish, then customers / projects.
+Next: `feature/customers`, then projects.
 
 ---
 
