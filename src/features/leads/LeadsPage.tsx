@@ -102,7 +102,7 @@ export function LeadsPage() {
     setFormError(null)
     try {
       if (editing) {
-        await updateLead(editing.id, values)
+        await updateLead(editing.id, values, editing)
       } else {
         await createLead(values, user?.id)
       }
@@ -212,7 +212,7 @@ export function LeadsPage() {
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
               <tr>
-                <th className="px-4 py-3 font-semibold">Client / Contact</th>
+                <th className="px-4 py-3 font-semibold">Lead</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Source</th>
                 <th className="px-4 py-3 font-semibold">Service</th>
@@ -228,11 +228,13 @@ export function LeadsPage() {
                   className="border-b border-line/70 transition-colors last:border-0 hover:bg-surface-muted/70"
                 >
                   <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{lead.clients?.name ?? 'Unlinked lead'}</p>
+                    <p className="font-medium text-ink">
+                      {lead.service_interested || lead.source || 'New lead'}
+                    </p>
                     <p className="text-xs text-ink-muted">
-                      {lead.contacts
-                        ? `${lead.contacts.first_name} ${lead.contacts.last_name}`
-                        : 'No contact'}
+                      {lead.clients?.name
+                        ? `Client: ${lead.clients.name}`
+                        : 'Not converted yet'}
                     </p>
                   </td>
                   <td className="px-4 py-3">
@@ -283,7 +285,11 @@ export function LeadsPage() {
       >
         <LeadForm
           initial={editing}
-          clients={clients}
+          linkedClientName={
+            editing
+              ? leads.find((lead) => lead.id === editing.id)?.clients?.name ?? null
+              : null
+          }
           submitting={submitting}
           formError={formError}
           onSubmit={handleSubmit}

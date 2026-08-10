@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
-import type { Client, Contact, Lead } from '@/types/database'
-import { listContactsForClient } from '@/features/leads/api'
-import { LEAD_STATUSES, leadSchema, type LeadFormValues } from '@/features/leads/schemas'
+import type { Lead } from '@/types/database'
+import {
+  LEAD_FORM_STATUSES,
+  leadSchema,
+  type LeadFormValues,
+} from '@/features/leads/schemas'
 import { Button } from '@/components/ui/Button'
 
 type LeadFormProps = {
   initial?: Lead | null
-  clients: Pick<Client, 'id' | 'name' | 'client_type'>[]
+  linkedClientName?: string | null
   submitting: boolean
   formError: string | null
   onSubmit: (values: LeadFormValues) => Promise<void>
@@ -17,8 +20,6 @@ type LeadFormProps = {
 }
 
 const emptyValues: LeadFormValues = {
-  client_id: '',
-  contact_id: '',
   source: '',
   service_interested: '',
   status: 'new',
@@ -34,12 +35,21 @@ function toDateInput(value: string | null): string {
 }
 
 function toFormValues(lead: Lead): LeadFormValues {
+  const status =
+    lead.status === 'converted' || lead.status === 'lost' || lead.status === 'new'
+      ? lead.status === 'converted'
+        ? 'qualified'
+        : lead.status
+      : lead.status === 'contacted' ||
+          lead.status === 'qualified' ||
+          lead.status === 'unqualified'
+        ? lead.status
+        : 'new'
+
   return {
-    client_id: lead.client_id ?? '',
-    contact_id: lead.contact_id ?? '',
     source: lead.source ?? '',
     service_interested: lead.service_interested ?? '',
-    status: lead.status,
+    status: lead.status === 'converted' ? 'qualified' : (status as LeadFormValues['status']),
     estimated_value:
       lead.estimated_value === null || lead.estimated_value === undefined
         ? ''
@@ -52,22 +62,17 @@ function toFormValues(lead: Lead): LeadFormValues {
 
 export function LeadForm({
   initial,
-  clients,
+  linkedClientName,
   submitting,
   formError,
   onSubmit,
   onCancel,
 }: LeadFormProps) {
-  const [contacts, setContacts] = useState<
-    Pick<Contact, 'id' | 'first_name' | 'last_name' | 'client_id'>[]
-  >([])
-  const [contactsError, setContactsError] = useState<string | null>(null)
+  const isConverted = initial?.status === 'converted'
 
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     reset,
     formState: { errors },
   } = useForm<LeadFormValues>({
@@ -75,91 +80,42 @@ export function LeadForm({
     defaultValues: initial ? toFormValues(initial) : emptyValues,
   })
 
-  const clientId = watch('client_id')
-
   useEffect(() => {
     reset(initial ? toFormValues(initial) : emptyValues)
   }, [initial, reset])
 
-  useEffect(() => {
-    if (!clientId) {
-      setContacts([])
-      setValue('contact_id', '')
-      return
-    }
-
-    let active = true
-    void listContactsForClient(clientId)
-      .then((data) => {
-        if (!active) return
-        setContacts(data)
-        setContactsError(null)
-        const currentContact = initial?.contact_id
-        if (currentContact && data.some((contact) => contact.id === currentContact)) {
-          setValue('contact_id', currentContact)
-        } else {
-          setValue('contact_id', '')
-        }
-      })
-      .catch((err: unknown) => {
-        if (!active) return
-        setContacts([])
-        setContactsError(err instanceof Error ? err.message : 'Failed to load contacts')
-      })
-
-    return () => {
-      active = false
-    }
-  }, [clientId, initial?.contact_id, setValue])
-
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div>
-        <label htmlFor="status" className="block text-sm font-medium text-ink">
-          Status
-        </label>
-        <select id="status" className="input-field mt-1 rounded-md" {...register('status')}>
-          {LEAD_STATUSES.map((status) => (
-            <option key={status.value} value={status.value}>
-              {status.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <p className="text-sm text-ink-muted">
+        Capture the interest here. When they’re ready, use <strong>Convert</strong> to turn this
+        lead into a client.
+      </p>
 
-      <div>
-        <label htmlFor="client_id" className="block text-sm font-medium text-ink">
-          Client
-        </label>
-        <select id="client_id" className="input-field mt-1 rounded-md" {...register('client_id')}>
-          <option value="">No client linked</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name} ({client.client_type})
-            </option>
-          ))}
-        </select>
-      </div>
+      {linkedClientName ? (
+        <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">
+          Linked client: <span className="font-semibold">{linkedClientName}</span>
+          {isConverted ? ' · Already converted' : null}
+        </p>
+      ) : null}
 
-      <div>
-        <label htmlFor="contact_id" className="block text-sm font-medium text-ink">
-          Contact
-        </label>
-        <select
-          id="contact_id"
-          className="input-field mt-1 rounded-md"
-          disabled={!clientId}
-          {...register('contact_id')}
-        >
-          <option value="">{clientId ? 'No contact linked' : 'Select a client first'}</option>
-          {contacts.map((contact) => (
-            <option key={contact.id} value={contact.id}>
-              {contact.first_name} {contact.last_name}
-            </option>
-          ))}
-        </select>
-        {contactsError ? <p className="mt-1 text-xs text-danger">{contactsError}</p> : null}
-      </div>
+      {!isConverted ? (
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-ink">
+            Status
+          </label>
+          <select id="status" className="input-field mt-1 rounded-md" {...register('status')}>
+            {LEAD_FORM_STATUSES.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          Status is <strong>Converted</strong>. Edit the client record for relationship details.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="source" label="Lead source" error={errors.source?.message} {...register('source')} />

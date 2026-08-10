@@ -5,7 +5,6 @@ import type { ClientFormValues } from '@/features/clients/schemas'
 import {
   parseMoney,
   toNullable,
-  toNullableUuid,
   type LeadFormValues,
 } from '@/features/leads/schemas'
 
@@ -76,10 +75,14 @@ export async function listLeads(filters: LeadFilters): Promise<LeadWithRelations
   return (data as LeadWithRelations[] | null) ?? []
 }
 
-function toPayload(values: LeadFormValues, userId: string | undefined) {
+function toPayload(
+  values: LeadFormValues,
+  userId: string | undefined,
+  links?: { client_id: string | null; contact_id: string | null },
+) {
   return {
-    client_id: toNullableUuid(values.client_id),
-    contact_id: toNullableUuid(values.contact_id),
+    client_id: links?.client_id ?? null,
+    contact_id: links?.contact_id ?? null,
     source: toNullable(values.source),
     service_interested: toNullable(values.service_interested),
     status: values.status,
@@ -106,9 +109,12 @@ export async function createLead(
   return data
 }
 
-export async function updateLead(id: string, values: LeadFormValues): Promise<Lead> {
+export async function updateLead(id: string, values: LeadFormValues, existing?: Lead): Promise<Lead> {
   const supabase = getSupabaseClient()
-  const payload = toPayload(values, undefined)
+  const payload = toPayload(values, undefined, {
+    client_id: existing?.client_id ?? null,
+    contact_id: existing?.contact_id ?? null,
+  })
   const { data, error } = await supabase
     .from('leads')
     .update({
@@ -116,7 +122,7 @@ export async function updateLead(id: string, values: LeadFormValues): Promise<Le
       contact_id: payload.contact_id,
       source: payload.source,
       service_interested: payload.service_interested,
-      status: payload.status,
+      status: existing?.status === 'converted' ? 'converted' : payload.status,
       estimated_value: payload.estimated_value,
       notes: payload.notes,
       last_contacted_at: payload.last_contacted_at,
