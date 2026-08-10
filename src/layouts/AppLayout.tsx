@@ -10,6 +10,7 @@ import {
   Menu,
   NotebookPen,
   Search,
+  StickyNote,
   Target,
   Users,
   X,
@@ -37,6 +38,7 @@ const navItems: {
   { to: '/projects', label: 'Projects', icon: FolderKanban },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/activities', label: 'Activities', icon: NotebookPen },
+  { to: '/notes', label: 'Notes', icon: StickyNote },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/search', label: 'Search', icon: Search },
 ]
