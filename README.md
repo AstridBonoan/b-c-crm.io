@@ -186,10 +186,12 @@ Implemented:
 - App layout with sidebar/header
 - Routing with module placeholders
 - **Clients module** (organizations + individuals, CRUD, search/filter)
+- **Contacts module** (people linked to clients)
 - Initial normalized schema + RLS + private storage bucket
 - GitHub Actions build/validate + deploy to `gh-pages`
+- B&C brand theme with light/dark toggle
 
-Next: `feature/contacts`, then leads / pipeline.
+Next: `feature/leads`, then pipeline / deals.
 
 ---
 

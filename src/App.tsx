@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ClientsPage } from '@/features/clients/ClientsPage'
+import { ContactsPage } from '@/features/contacts/ContactsPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -20,16 +21,7 @@ export default function App() {
               <Route index element={<DashboardPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="companies" element={<Navigate to="/clients" replace />} />
-              <Route
-                path="contacts"
-                element={
-                  <ModulePlaceholderPage
-                    title="Contacts"
-                    description="People associated with client organizations (and optional contacts for individuals)."
-                    branchName="feature/contacts"
-                  />
-                }
-              />
+              <Route path="contacts" element={<ContactsPage />} />
               <Route
                 path="leads"
                 element={
