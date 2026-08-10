@@ -7,6 +7,7 @@ import { ClientsPage } from '@/features/clients/ClientsPage'
 import { ContactsPage } from '@/features/contacts/ContactsPage'
 import { LeadsPage } from '@/features/leads/LeadsPage'
 import { PipelinePage } from '@/features/pipeline/PipelinePage'
+import { DealsPage } from '@/features/deals/DealsPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="leads" element={<LeadsPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="deals" element={<DealsPage />} />
               <Route
                 path="customers"
                 element={

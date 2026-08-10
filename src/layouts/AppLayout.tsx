@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   Building2,
   CheckSquare,
   ContactRound,
@@ -31,6 +32,7 @@ const navItems: {
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
   { to: '/leads', label: 'Leads', icon: Target },
   { to: '/pipeline', label: 'Pipeline', icon: Handshake },
+  { to: '/deals', label: 'Deals', icon: Briefcase },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
