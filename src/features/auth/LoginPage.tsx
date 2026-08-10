@@ -6,6 +6,7 @@ import { loginSchema, type LoginFormValues } from '@/features/auth/schemas'
 import { useAuth } from '@/features/auth/useAuth'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Button } from '@/components/ui/Button'
+import bcLogo from '@/assets/bc-logo.png'
 
 type Mode = 'signin' | 'signup'
 
@@ -71,6 +72,11 @@ export function LoginPage() {
       <section className="auth-atmosphere relative hidden overflow-hidden px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:48px_48px]" />
         <div className="relative animate-fade-up">
+          <img
+            src={bcLogo}
+            alt="B&C Software & Web"
+            className="mb-6 h-14 w-14 object-contain"
+          />
           <p className="text-xs font-semibold tracking-[0.22em] text-brand-200 uppercase">
             Software &amp; Web
           </p>
@@ -90,6 +96,7 @@ export function LoginPage() {
       <section className="app-shell-bg flex items-center justify-center px-4 py-10">
         <div className="panel w-full max-w-md p-8 animate-scale-in">
           <div className="lg:hidden">
+            <img src={bcLogo} alt="B&C Software & Web" className="mb-3 h-10 w-10 object-contain" />
             <p className="font-display text-2xl font-semibold text-brand-800">B&amp;C</p>
             <p className="mt-1 text-xs tracking-[0.18em] text-brand-600 uppercase">
               Internal CRM

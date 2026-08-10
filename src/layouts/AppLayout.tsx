@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
 import { Button } from '@/components/ui/Button'
+import bcLogo from '@/assets/bc-logo.png'
 
 const navItems: {
   to: string
@@ -51,13 +52,20 @@ export function AppLayout() {
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
-          <div className="min-w-0">
-            <p className="font-display text-lg font-semibold tracking-tight text-white">
-              B&amp;C
-            </p>
-            <p className="truncate text-[11px] tracking-[0.14em] text-brand-300 uppercase">
-              Internal CRM
-            </p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <img
+              src={bcLogo}
+              alt="B&C Software & Web"
+              className="h-9 w-9 object-contain"
+            />
+            <div className="min-w-0">
+              <p className="font-display text-lg font-semibold tracking-tight text-white">
+                B&amp;C
+              </p>
+              <p className="truncate text-[11px] tracking-[0.14em] text-brand-300 uppercase">
+                Internal CRM
+              </p>
+            </div>
           </div>
           <button
             type="button"
