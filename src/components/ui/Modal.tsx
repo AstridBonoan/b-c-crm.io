@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/Button'
 
 type ModalProps = {
@@ -10,9 +11,18 @@ type ModalProps = {
 }
 
 export function Modal({ open, title, onClose, children, footer }: ModalProps) {
+  useEffect(() => {
+    if (!open) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [open])
+
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-in">
       <button
         type="button"
@@ -43,6 +53,7 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
