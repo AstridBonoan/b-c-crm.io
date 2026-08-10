@@ -5,6 +5,8 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ClientsPage } from '@/features/clients/ClientsPage'
 import { ContactsPage } from '@/features/contacts/ContactsPage'
+import { LeadsPage } from '@/features/leads/LeadsPage'
+import { PipelinePage } from '@/features/pipeline/PipelinePage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ModulePlaceholderPage } from '@/pages/ModulePlaceholderPage'
@@ -22,26 +24,8 @@ export default function App() {
               <Route path="clients" element={<ClientsPage />} />
               <Route path="companies" element={<Navigate to="/clients" replace />} />
               <Route path="contacts" element={<ContactsPage />} />
-              <Route
-                path="leads"
-                element={
-                  <ModulePlaceholderPage
-                    title="Leads"
-                    description="Track potential customers before conversion."
-                    branchName="feature/leads"
-                  />
-                }
-              />
-              <Route
-                path="pipeline"
-                element={
-                  <ModulePlaceholderPage
-                    title="Sales Pipeline"
-                    description="Kanban-style opportunity stages."
-                    branchName="feature/sales-pipeline"
-                  />
-                }
-              />
+              <Route path="leads" element={<LeadsPage />} />
+              <Route path="pipeline" element={<PipelinePage />} />
               <Route
                 path="customers"
                 element={
