@@ -10,12 +10,15 @@ export const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
   { value: 'lost', label: 'Lost' },
 ]
 
+/** Statuses you can set on the lead form (conversion happens via Convert). */
+export const LEAD_FORM_STATUSES = LEAD_STATUSES.filter(
+  (status) => status.value !== 'converted',
+)
+
 export const leadSchema = z.object({
-  client_id: z.string().optional(),
-  contact_id: z.string().optional(),
   source: z.string().optional(),
   service_interested: z.string().optional(),
-  status: z.enum(['new', 'contacted', 'qualified', 'unqualified', 'converted', 'lost']),
+  status: z.enum(['new', 'contacted', 'qualified', 'unqualified', 'lost']),
   estimated_value: z.string().optional(),
   notes: z.string().optional(),
   last_contacted_at: z.string().optional(),
