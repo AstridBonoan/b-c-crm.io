@@ -87,10 +87,10 @@ export function LoginPage() {
         <div className="relative animate-fade-up">
           <BrandLogo
             variant={atmosphereLogoVariant}
-            className="mb-8 h-12 w-auto object-contain"
+            className="mb-8 h-24 w-auto max-w-[280px] object-contain object-left"
           />
           <p className="text-xs font-semibold tracking-[0.22em] text-teal uppercase">
-            B&amp;C Software &amp; Web
+            Employee workspace
           </p>
           <h1 className="mt-4 max-w-md text-4xl leading-tight font-semibold tracking-tight">
             Internal CRM
@@ -116,7 +116,7 @@ export function LoginPage() {
       <section className="app-shell-bg flex items-center justify-center px-4 py-10">
         <div className="panel w-full max-w-md rounded-lg bg-auth-panel p-8 animate-scale-in">
           <div className="lg:hidden">
-            <BrandLogo className="mb-4 h-10 w-auto object-contain" />
+            <BrandLogo className="mb-4 h-16 w-auto max-w-[220px] object-contain" />
             <p className="text-xs tracking-[0.18em] text-teal uppercase">Internal CRM</p>
           </div>
           <h2 className="mt-2 text-xl font-semibold text-ink lg:mt-0">

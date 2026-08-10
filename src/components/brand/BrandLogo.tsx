@@ -8,9 +8,13 @@ type BrandLogoProps = {
   variant?: 'auto' | 'light' | 'dark'
 }
 
-export function BrandLogo({ className = 'h-9 w-auto object-contain', variant = 'auto' }: BrandLogoProps) {
+export function BrandLogo({
+  className = 'h-14 w-auto object-contain',
+  variant = 'auto',
+}: BrandLogoProps) {
   const { theme } = useTheme()
   const mode = variant === 'auto' ? theme : variant
+  // logo-dark = white B (for dark backgrounds); logo-light = navy B (for light backgrounds)
   const src = mode === 'dark' ? logoDark : logoLight
 
   return <img src={src} alt="B&C Software & Web" className={className} />
