@@ -32,7 +32,7 @@ export function DashboardPage() {
             <p className="text-[11px] font-semibold tracking-[0.12em] text-ink-muted uppercase">
               {metric.label}
             </p>
-            <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink">
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">
               {metric.value}
             </p>
           </Panel>
