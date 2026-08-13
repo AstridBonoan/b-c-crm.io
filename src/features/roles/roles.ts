@@ -13,7 +13,7 @@ export const USER_ROLES: {
     shortTitle: 'CTO · Delivery',
     primaryLane: 'delivery',
     summary:
-      'Primary lane: projects and delivery (status, progress, completion). Full access to everything else.',
+      'Primary lane: projects and delivery. Full access to Lead Finder, leads, and everything else — roles overlap on a two-person team.',
   },
   {
     value: 'founder_cmo',
@@ -21,7 +21,7 @@ export const USER_ROLES: {
     shortTitle: 'CMO · Growth',
     primaryLane: 'growth',
     summary:
-      'Primary lane: marketing and leads (finding and securing demand). Full access to everything else.',
+      'Primary lane: marketing, Lead Finder, and demand. Full access to projects and everything else — roles overlap on a two-person team.',
   },
 ]
 

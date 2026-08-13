@@ -282,9 +282,9 @@ export function TeamPage() {
         Soft ownership reminder: {isDeliveryPrimary(user ? members.find((m) => m.id === user.id)?.role : null)
           ? 'Your primary lane is delivery/projects.'
           : isGrowthPrimary(user ? members.find((m) => m.id === user.id)?.role : null)
-            ? 'Your primary lane is growth/leads.'
+            ? 'Your primary lane is growth/leads (including Lead Finder).'
             : 'Set your founder role to see your primary lane.'}{' '}
-        You can still update your partner’s records anytime so you both stay in sync.
+        Both founders can use Lead Finder and update any record — lanes overlap on purpose.
       </Panel>
 
       <Modal
