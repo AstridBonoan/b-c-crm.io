@@ -271,7 +271,7 @@ export function ProspectDetailPage() {
       </div>
 
       <Panel className="mb-4 px-4 py-4">
-        <h2 className="text-sm font-semibold text-ink">CMO notes & follow-ups</h2>
+        <h2 className="text-sm font-semibold text-ink">Notes & follow-ups</h2>
         <textarea
           className="input-field mt-3 rounded-md"
           rows={3}

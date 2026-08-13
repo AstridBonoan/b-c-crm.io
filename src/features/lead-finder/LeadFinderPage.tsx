@@ -129,7 +129,7 @@ export function LeadFinderPage() {
     <div>
       <PageHeader
         title="Lead Finder"
-        description="Search local businesses, score websites with deterministic rules, and save high-opportunity prospects into the CRM."
+        description="Search local businesses, score websites with deterministic rules, and save high-opportunity prospects into the CRM. Both founders have full access."
         actions={
           <Button variant="secondary" onClick={exportCsv} disabled={prospects.length === 0}>
             Export CSV

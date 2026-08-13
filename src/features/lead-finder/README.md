@@ -1,6 +1,8 @@
 # Lead Finder
 
-Internal prospecting for B&C (CMO-first). Deterministic scoring — **no AI**.
+Internal prospecting for B&C founders (CTO and CMO — full shared access). Deterministic scoring — **no AI**.
+
+Roles are soft labels only: growth work often sits with the CMO, but both founders can search, score, save, and follow up.
 
 ## Phase 1 (this branch)
 
