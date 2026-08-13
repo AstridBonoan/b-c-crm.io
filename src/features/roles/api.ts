@@ -103,14 +103,17 @@ export async function loadTeamOverview(): Promise<TeamOverview> {
     ])
 
   if (membersResult.error) throw new Error(membersResult.error.message)
-  if (allowlistResult.error) throw new Error(allowlistResult.error.message)
+  if (allowlistResult.error) {
+    // Soft-fail: Team still loads if allowlist migration is not applied yet.
+    console.warn('employee_allowlist unavailable:', allowlistResult.error.message)
+  }
   if (activitiesResult.error) throw new Error(activitiesResult.error.message)
   if (projectsResult.error) throw new Error(projectsResult.error.message)
   if (leadsResult.error) throw new Error(leadsResult.error.message)
 
   return {
     members: membersResult.data ?? [],
-    allowlist: allowlistResult.data ?? [],
+    allowlist: allowlistResult.error ? [] : (allowlistResult.data ?? []),
     recentActivities: (activitiesResult.data as TeamMemberActivity[] | null) ?? [],
     recentProjects: (projectsResult.data as TeamMemberProject[] | null) ?? [],
     recentLeads: (leadsResult.data as TeamMemberLead[] | null) ?? [],

@@ -13,13 +13,15 @@ Use branch **`chore/product-readiness`** for this work. Keep **`feature/simplify
 
 ### App smoke path
 - [ ] Sign in as CTO and as CMO
-- [ ] Create lead → **Convert** → client is Active
-- [ ] Add contact under that client
+- [ ] Create lead → **Convert** → lands on Active clients; contact created when details provided
+- [ ] Add/edit contact under that client
 - [ ] Create deal / move pipeline stage
 - [ ] Create project on the client
 - [ ] Log activity, note, task; upload a document
 - [ ] Dashboard, Search, Analytics, Team (allowlist panel) load without errors
+- [ ] Filtered empty states say “No matching…” (not “No … yet”)
 - [ ] Tall Edit lead modal is centered and fully usable
+- [ ] Unauthorized / inactive session is signed out with a clear message on login
 
 ### Deploy
 - [ ] Merge PR #27 (or readiness PR) into `main`

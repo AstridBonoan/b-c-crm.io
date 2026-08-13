@@ -8,9 +8,15 @@ import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { useTheme } from '@/features/theme/useTheme'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-function SignInForm({ configured }: { configured: boolean }) {
+function SignInForm({
+  configured,
+  banner,
+}: {
+  configured: boolean
+  banner: string | null
+}) {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -77,6 +83,10 @@ function SignInForm({ configured }: { configured: boolean }) {
         </div>
       ) : null}
 
+      {banner ? (
+        <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">{banner}</p>
+      ) : null}
+
       {submitError ? (
         <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
           {submitError}
@@ -91,8 +101,21 @@ function SignInForm({ configured }: { configured: boolean }) {
 }
 
 export function LoginPage() {
-  const { user, profile, loading, configured } = useAuth()
+  const { user, profile, loading, configured, signOut } = useAuth()
   const { theme } = useTheme()
+  const [accessBanner, setAccessBanner] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (loading || !user) return
+    if (profile?.is_active) return
+
+    const message = profile
+      ? 'This account is not authorized for the CRM. Access is limited to allowlisted B&C employees.'
+      : 'No employee profile found for this account. Ask a founder to add your email to the allowlist.'
+
+    setAccessBanner(message)
+    void signOut()
+  }, [loading, user, profile, signOut])
 
   if (loading) {
     return <LoadingScreen label="Loading…" />
@@ -157,7 +180,7 @@ export function LoginPage() {
             here — founders add people in Supabase.
           </p>
 
-          <SignInForm configured={configured} />
+          <SignInForm configured={configured} banner={accessBanner} />
         </div>
       </section>
     </div>

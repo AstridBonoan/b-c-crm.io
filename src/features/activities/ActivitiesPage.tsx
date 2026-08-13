@@ -37,7 +37,6 @@ function relatedLabel(activity: ActivityWithRelations): string {
   if (activity.leads) {
     return activity.leads.service_interested || activity.leads.source || 'Lead'
   }
-  if (activity.customers) return 'Legacy customer link'
   return '—'
 }
 

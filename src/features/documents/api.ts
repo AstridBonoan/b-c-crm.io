@@ -2,7 +2,6 @@ import { getSupabaseClient } from '@/lib/supabase'
 import type {
   Client,
   Contact,
-  Customer,
   Deal,
   DocumentRecord,
   Lead,
@@ -21,7 +20,6 @@ export type DocumentWithRelations = DocumentRecord & {
   contacts: Pick<Contact, 'id' | 'first_name' | 'last_name'> | null
   leads: Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'> | null
   deals: Pick<Deal, 'id' | 'name'> | null
-  customers: Pick<Customer, 'id' | 'status'> | null
   projects: Pick<Project, 'id' | 'name'> | null
 }
 
@@ -103,7 +101,7 @@ export async function listDocuments(
   let query = supabase
     .from('documents')
     .select(
-      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), customers(id, status), projects(id, name)',
+      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), projects(id, name)',
     )
     .order('updated_at', { ascending: false })
 

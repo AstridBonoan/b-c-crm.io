@@ -3,7 +3,6 @@ import type {
   Activity,
   Client,
   Contact,
-  Customer,
   Deal,
   Lead,
   Project,
@@ -22,7 +21,6 @@ export type ActivityWithRelations = Activity & {
   contacts: Pick<Contact, 'id' | 'first_name' | 'last_name'> | null
   leads: Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'> | null
   deals: Pick<Deal, 'id' | 'name'> | null
-  customers: Pick<Customer, 'id' | 'status'> | null
   projects: Pick<Project, 'id' | 'name'> | null
   tasks: Pick<Task, 'id' | 'title'> | null
 }
@@ -120,7 +118,7 @@ export async function listActivities(
   let query = supabase
     .from('activities')
     .select(
-      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), customers(id, status), projects(id, name), tasks(id, title)',
+      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), projects(id, name), tasks(id, title)',
     )
     .order('occurred_at', { ascending: false })
 
