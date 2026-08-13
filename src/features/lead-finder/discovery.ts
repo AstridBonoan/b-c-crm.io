@@ -408,32 +408,6 @@ function websiteFromOsmTags(tags: Record<string, string>): string | null {
   return null
 }
 
-function normalizeBusinessName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .replace(
-      /\b(llc|inc|incorporated|corp|corporation|co|company|ltd|limited|plc|llp|pllc|&)\b/g,
-      ' ',
-    )
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function namesLikelyMatch(a: string, b: string): boolean {
-  const na = normalizeBusinessName(a)
-  const nb = normalizeBusinessName(b)
-  if (!na || !nb) return false
-  if (na === nb) return true
-  if (na.includes(nb) || nb.includes(na)) return true
-  const ta = new Set(na.split(' ').filter((t) => t.length > 2))
-  const tb = new Set(nb.split(' ').filter((t) => t.length > 2))
-  if (ta.size === 0 || tb.size === 0) return false
-  let inter = 0
-  for (const t of ta) if (tb.has(t)) inter += 1
-  return inter / Math.max(ta.size, tb.size) >= 0.6
-}
-
 async function websiteFromWikidata(wikidataId: string | null | undefined): Promise<string | null> {
   if (!wikidataId || !/^Q\d+$/i.test(wikidataId)) return null
   try {
@@ -456,37 +430,15 @@ async function websiteFromWikidata(wikidataId: string | null | undefined): Promi
   }
 }
 
-async function websiteFromClearbit(businessName: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(businessName)}`,
-    )
-    if (!res.ok) return null
-    const rows = (await res.json()) as { name?: string; domain?: string }[]
-    for (const row of rows.slice(0, 5)) {
-      if (!row.domain || !row.name) continue
-      if (!namesLikelyMatch(businessName, row.name)) continue
-      const website = normalizeWebsite(row.domain)
-      if (website) return website
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
+/** Only use a URL attached to this map listing — never guess from a similar company name. */
 async function enrichWebsite(
-  businessName: string,
   tags: Record<string, string>,
   place: NominatimLookup | undefined,
 ): Promise<string | null> {
   const fromOsm = websiteFromOsmTags(tags) || place?.website
   if (fromOsm) return fromOsm
 
-  const fromWiki = await websiteFromWikidata(place?.wikidata || tags.wikidata)
-  if (fromWiki) return fromWiki
-
-  return websiteFromClearbit(businessName)
+  return websiteFromWikidata(place?.wikidata || tags.wikidata)
 }
 
 /**
@@ -651,7 +603,7 @@ export async function discoverBusinesses(query: DiscoveryQuery): Promise<Discove
     const tags = el.tags ?? {}
     const name = tags.name || tags.operator
     if (!name) continue
-    const website = await enrichWebsite(name, tags, place)
+    const website = await enrichWebsite(tags, place)
     const business = mapElement(el, query, center, place, website)
     if (business) mapped.push(business)
   }
