@@ -9,23 +9,7 @@ Check a box only when **you** finish that step.
 
 ## Still needs to be done
 
-Everything below is **waiting on you**. Code for this polish pass is already in PR #29.
-
-### 1. Supabase (do this first)
-- [ ] Apply missing SQL in order — see `supabase/MIGRATIONS.md`  
-  **Must-have if not done:** `20260813160000_employee_allowlist.sql`
-- [ ] Confirm you and Charlie:
-
-```sql
-select email, is_active, role from public.profiles order by created_at;
-select * from public.employee_allowlist;
-```
-
-- [ ] If either founder is missing from the allowlist, add lowercase emails + set `is_active = true`
-- [ ] Supabase → **Authentication → Providers → Email** → turn **off** “Enable sign ups”
-- [ ] Optional check: a random non-allowlisted email cannot use the CRM
-
-### 2. Smoke-test the app
+### 1. Smoke-test the app
 Run locally on this branch (`npm run dev`) or on Pages after merge.
 
 - [ ] Sign in as **you (CTO)** and as **Charlie (CMO)**
@@ -37,7 +21,7 @@ Run locally on this branch (`npm run dev`) or on Pages after merge.
 - [ ] Tall Edit lead modal is centered (not clipped)
 - [ ] Unauthorized / inactive login shows a clear message
 
-### 3. Ship PR #29
+### 2. Ship PR #29
 - [ ] Merge [#29](https://github.com/AstridBonoan/b-c-crm.io/pull/29) into `main` (after smoke tests)
 - [ ] Confirm GitHub Actions deployed to `gh-pages`
 - [ ] Spot-check https://astridbonoan.github.io/b-c-crm.io/
@@ -48,8 +32,10 @@ Run locally on this branch (`npm run dev`) or on Pages after merge.
 
 | Item | Notes |
 | --- | --- |
+| Allowlist migration applied | Done |
+| Email sign-ups disabled in Supabase | Done |
 | Full CRM modules + lead → client convert | On `main` via #27 |
-| Sign-in only + employee allowlist code | On `main` — **still need** migration + disable signups |
+| Sign-in only + employee allowlist (app + DB) | Done |
 | Modal centering / portal | On `main` |
 | Customer pickers removed | On `main` |
 | Convert creates contact + navigates to clients | On `main` via #28 |
@@ -63,10 +49,9 @@ Run locally on this branch (`npm run dev`) or on Pages after merge.
 
 ## Suggested order
 
-1. Allowlist migration + disable Email sign-ups  
-2. Confirm profiles / allowlist for you + Charlie  
-3. Smoke-test  
-4. Merge PR #29  
-5. Check live site  
+1. ~~Allowlist migration + disable Email sign-ups~~ **Done**  
+2. Smoke-test  
+3. Merge PR #29  
+4. Check live site  
 
 When every box in **Still needs to be done** is checked, treat the CRM as ready for daily founder use.
