@@ -2,7 +2,6 @@ import { getSupabaseClient } from '@/lib/supabase'
 import type {
   Client,
   Contact,
-  Customer,
   Deal,
   DocumentRecord,
   Lead,
@@ -21,7 +20,6 @@ export type DocumentWithRelations = DocumentRecord & {
   contacts: Pick<Contact, 'id' | 'first_name' | 'last_name'> | null
   leads: Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'> | null
   deals: Pick<Deal, 'id' | 'name'> | null
-  customers: Pick<Customer, 'id' | 'status'> | null
   projects: Pick<Project, 'id' | 'name'> | null
 }
 
@@ -82,20 +80,6 @@ export async function listDealsForClient(
   return data ?? []
 }
 
-export async function listCustomersForClient(
-  clientId: string,
-): Promise<Pick<Customer, 'id' | 'status'>[]> {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('id, status')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
-
 export async function listProjectsForClient(
   clientId: string,
 ): Promise<Pick<Project, 'id' | 'name'>[]> {
@@ -117,7 +101,7 @@ export async function listDocuments(
   let query = supabase
     .from('documents')
     .select(
-      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), customers(id, status), projects(id, name)',
+      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), projects(id, name)',
     )
     .order('updated_at', { ascending: false })
 
@@ -138,7 +122,7 @@ function metaPayload(values: DocumentMetaValues) {
     contact_id: toNullableUuid(values.contact_id),
     lead_id: toNullableUuid(values.lead_id),
     deal_id: toNullableUuid(values.deal_id),
-    customer_id: toNullableUuid(values.customer_id),
+    customer_id: null,
     project_id: toNullableUuid(values.project_id),
   }
 }

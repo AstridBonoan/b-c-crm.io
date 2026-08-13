@@ -115,6 +115,32 @@ export function TeamPage() {
         </p>
       ) : null}
 
+      <Panel className="mb-4 px-4 py-4">
+        <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">
+          Employee allowlist
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">
+          Only these emails can be active in the CRM. Add or remove rows in Supabase SQL
+          (`employee_allowlist`) — not from this screen.
+        </p>
+        {overview?.allowlist?.length ? (
+          <ul className="mt-3 space-y-1 text-sm text-ink">
+            {overview.allowlist.map((row) => (
+              <li key={row.email}>
+                <span className="font-medium">{row.email}</span>
+                {row.note ? <span className="text-ink-muted"> · {row.note}</span> : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-ink-muted">
+            {loading
+              ? 'Loading allowlist…'
+              : 'No allowlist rows yet. Run the employee_allowlist migration, then refresh.'}
+          </p>
+        )}
+      </Panel>
+
       <div className="mb-4 grid gap-3 lg:grid-cols-2">
         <Panel className="px-4 py-4">
           <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">

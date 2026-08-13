@@ -30,6 +30,7 @@ export type TeamMemberLead = {
 
 export type TeamOverview = {
   members: Profile[]
+  allowlist: { email: string; note: string | null }[]
   recentActivities: TeamMemberActivity[]
   recentProjects: TeamMemberProject[]
   recentLeads: TeamMemberLead[]
@@ -41,6 +42,17 @@ export async function listTeamMembers(): Promise<Profile[]> {
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function listEmployeeAllowlist(): Promise<{ email: string; note: string | null }[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('employee_allowlist')
+    .select('email, note')
+    .order('email', { ascending: true })
 
   if (error) throw new Error(error.message)
   return data ?? []
@@ -69,9 +81,10 @@ export async function updateTeamMember(
 export async function loadTeamOverview(): Promise<TeamOverview> {
   const supabase = getSupabaseClient()
 
-  const [membersResult, activitiesResult, projectsResult, leadsResult] =
+  const [membersResult, allowlistResult, activitiesResult, projectsResult, leadsResult] =
     await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: true }),
+      supabase.from('employee_allowlist').select('email, note').order('email', { ascending: true }),
       supabase
         .from('activities')
         .select('id, type, summary, occurred_at, created_by')
@@ -90,12 +103,17 @@ export async function loadTeamOverview(): Promise<TeamOverview> {
     ])
 
   if (membersResult.error) throw new Error(membersResult.error.message)
+  if (allowlistResult.error) {
+    // Soft-fail: Team still loads if allowlist migration is not applied yet.
+    console.warn('employee_allowlist unavailable:', allowlistResult.error.message)
+  }
   if (activitiesResult.error) throw new Error(activitiesResult.error.message)
   if (projectsResult.error) throw new Error(projectsResult.error.message)
   if (leadsResult.error) throw new Error(leadsResult.error.message)
 
   return {
     members: membersResult.data ?? [],
+    allowlist: allowlistResult.error ? [] : (allowlistResult.data ?? []),
     recentActivities: (activitiesResult.data as TeamMemberActivity[] | null) ?? [],
     recentProjects: (projectsResult.data as TeamMemberProject[] | null) ?? [],
     recentLeads: (leadsResult.data as TeamMemberLead[] | null) ?? [],

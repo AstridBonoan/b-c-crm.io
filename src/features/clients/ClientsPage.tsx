@@ -175,11 +175,30 @@ export function ClientsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading clients…</Panel>
       ) : clients.length === 0 ? (
-        <EmptyState
-          title="No clients yet"
-          description="Convert a qualified lead into a client, or add a client directly."
-          action={<Button onClick={openCreate}>Add client</Button>}
-        />
+        search.trim() || clientType !== 'all' || status !== 'all' ? (
+          <EmptyState
+            title="No matching clients"
+            description="Try clearing search or filters to see all clients."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setClientType('all')
+                  setSearchParams({})
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No clients yet"
+            description="Convert a qualified lead into a client, or add a client directly."
+            action={<Button onClick={openCreate}>Add client</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

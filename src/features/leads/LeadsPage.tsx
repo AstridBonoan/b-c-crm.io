@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
@@ -37,6 +38,7 @@ function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'dang
 
 export function LeadsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [leads, setLeads] = useState<LeadWithRelations[]>([])
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
@@ -141,9 +143,10 @@ export function LeadsPage() {
     setConvertBusy(true)
     setConvertError(null)
     try {
-      await convertLeadToClient(converting, values, user?.id)
+      const result = await convertLeadToClient(converting, values, user?.id)
       setConverting(null)
       await Promise.all([load(), loadClients()])
+      navigate(`/clients?status=active&q=${encodeURIComponent(result.client.name)}`)
     } catch (err) {
       setConvertError(err instanceof Error ? err.message : 'Failed to convert lead')
     } finally {
@@ -202,11 +205,30 @@ export function LeadsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading leads…</Panel>
       ) : leads.length === 0 ? (
-        <EmptyState
-          title="No leads yet"
-          description="Capture inbound interest here, then convert a qualified lead into a client."
-          action={<Button onClick={openCreate}>Add lead</Button>}
-        />
+        search.trim() || status !== 'all' || clientId !== 'all' ? (
+          <EmptyState
+            title="No matching leads"
+            description="Try clearing search or filters to see all leads."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStatus('all')
+                  setClientId('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No leads yet"
+            description="Capture inbound interest here, then convert a qualified lead into a client."
+            action={<Button onClick={openCreate}>Add lead</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

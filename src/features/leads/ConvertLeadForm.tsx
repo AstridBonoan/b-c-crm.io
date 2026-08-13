@@ -125,8 +125,8 @@ export function ConvertLeadForm({
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <p className="text-sm text-ink-muted">
-        Create the client record from this lead. The lead will be marked converted and linked to
-        the new client.
+        Create the client from this lead. We’ll mark the lead converted, link the client, and create
+        a primary contact when name/email/phone is provided.
       </p>
 
       <fieldset className="space-y-2">

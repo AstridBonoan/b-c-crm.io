@@ -21,7 +21,6 @@ export const activitySchema = z.object({
   contact_id: z.string().optional(),
   lead_id: z.string().optional(),
   deal_id: z.string().optional(),
-  customer_id: z.string().optional(),
   project_id: z.string().optional(),
   task_id: z.string().optional(),
 })

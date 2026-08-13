@@ -1,7 +1,8 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import type { Client, Contact, Lead, LeadStatus } from '@/types/database'
 import { createClient, setClientStatus } from '@/features/clients/api'
-import type { ClientFormValues } from '@/features/clients/schemas'
+import { createContact } from '@/features/contacts/api'
+import { buildClientDisplayName, type ClientFormValues } from '@/features/clients/schemas'
 import {
   parseMoney,
   toNullable,
@@ -90,6 +91,7 @@ function toPayload(
     notes: toNullable(values.notes),
     last_contacted_at: toNullable(values.last_contacted_at),
     next_follow_up_at: toNullable(values.next_follow_up_at),
+    assigned_to: userId ?? null,
     created_by: userId ?? null,
   }
 }
@@ -136,13 +138,34 @@ export async function updateLead(id: string, values: LeadFormValues, existing?: 
   return data
 }
 
+function contactNamesFromClientValues(values: ClientFormValues): {
+  first_name: string
+  last_name: string
+} {
+  if (values.client_type === 'individual') {
+    return {
+      first_name: values.first_name?.trim() || 'Contact',
+      last_name: values.last_name?.trim() || 'Unknown',
+    }
+  }
+
+  const orgName = buildClientDisplayName(values)
+  const parts = orgName.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return { first_name: parts[0], last_name: parts.slice(1).join(' ') }
+  }
+  return { first_name: orgName || 'Primary', last_name: 'Contact' }
+}
+
 export async function convertLeadToClient(
   lead: LeadWithRelations,
   values: ClientFormValues,
   userId: string | undefined,
-): Promise<{ client: Client; lead: Lead }> {
+): Promise<{ client: Client; lead: Lead; contact: Contact | null }> {
   const supabase = getSupabaseClient()
   let client: Client
+  let contactId = lead.contact_id
+  let contact: Contact | null = null
 
   if (lead.client_id) {
     client = await setClientStatus(lead.client_id, 'active')
@@ -160,18 +183,44 @@ export async function convertLeadToClient(
     )
   }
 
+  const hasContactDetails =
+    Boolean(values.email?.trim()) ||
+    Boolean(values.phone?.trim()) ||
+    Boolean(values.first_name?.trim()) ||
+    Boolean(values.last_name?.trim()) ||
+    values.client_type === 'individual'
+
+  if (!contactId && hasContactDetails) {
+    const names = contactNamesFromClientValues(values)
+    contact = await createContact(
+      {
+        client_id: client.id,
+        first_name: names.first_name,
+        last_name: names.last_name,
+        email: values.email,
+        phone: values.phone,
+        job_title: undefined,
+        notes: 'Created when converting lead to client',
+      },
+      userId,
+    )
+    contactId = contact.id
+  }
+
   const { data, error } = await supabase
     .from('leads')
     .update({
       client_id: client.id,
+      contact_id: contactId,
       status: 'converted',
+      assigned_to: lead.assigned_to ?? userId ?? null,
     })
     .eq('id', lead.id)
     .select('*')
     .single()
 
   if (error) throw new Error(error.message)
-  return { client, lead: data }
+  return { client, lead: data, contact }
 }
 
 export async function deleteLead(id: string): Promise<void> {
