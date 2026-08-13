@@ -16,6 +16,8 @@ import { DocumentsPage } from '@/features/documents/DocumentsPage'
 import { SearchPage } from '@/features/search/SearchPage'
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage'
 import { TeamPage } from '@/features/roles/TeamPage'
+import { LeadFinderPage } from '@/features/lead-finder/LeadFinderPage'
+import { ProspectDetailPage } from '@/features/lead-finder/ProspectDetailPage'
 import { ThemeProvider } from '@/features/theme/ThemeProvider'
 import { AppLayout } from '@/layouts/AppLayout'
 
@@ -34,6 +36,8 @@ export default function App() {
               <Route path="companies" element={<Navigate to="/clients" replace />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="leads" element={<LeadsPage />} />
+              <Route path="lead-finder" element={<LeadFinderPage />} />
+              <Route path="lead-finder/:id" element={<ProspectDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="deals" element={<DealsPage />} />
               <Route path="customers" element={<Navigate to="/clients?status=active" replace />} />

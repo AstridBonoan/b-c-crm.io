@@ -13,6 +13,7 @@ import {
   Search,
   StickyNote,
   Target,
+  Radar,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ const navItems: {
   end?: boolean
 }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/lead-finder', label: 'Lead Finder', icon: Radar },
   { to: '/leads', label: 'Leads', icon: Target },
   { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
