@@ -390,11 +390,7 @@ function isGenericNycName(raw: string): boolean {
   return n === 'new york' || n === 'nyc'
 }
 
-function displayCity(
-  requestedCity: string,
-  place: NominatimLookup | undefined,
-  tags: Record<string, string>,
-): string {
+function displayCity(place: NominatimLookup | undefined, tags: Record<string, string>): string {
   const zip = place?.zip || tags['addr:postcode'] || null
   const fromZip = boroughFromZip(zip)
   if (fromZip) return fromZip
@@ -615,7 +611,7 @@ function mapElement(
       [place?.houseNumber, place?.road].filter(Boolean).join(' ') ||
       [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') ||
       null,
-    city: displayCity(query.city, place, tags),
+    city: displayCity(place, tags),
     state: requested || state || query.state.toUpperCase(),
     zip: place?.zip || tags['addr:postcode'] || null,
     phone: tags.phone || tags['contact:phone'] || null,
