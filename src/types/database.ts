@@ -229,16 +229,6 @@ export type ProspectRow = {
   linkedin_url: string | null
   yelp_url: string | null
   has_website: boolean
-  opportunity_score: number
-  website_score: number
-  mobile_score: number
-  seo_score: number
-  performance_score: number
-  online_presence_score: number
-  lead_gen_score: number
-  score_breakdown: Record<string, unknown>
-  findings: unknown
-  recommended_services: string[]
   pipeline_status: string
   saved_to_crm: boolean
   crm_lead_id: string | null
@@ -246,7 +236,6 @@ export type ProspectRow = {
   notes: string | null
   last_contacted_at: string | null
   next_follow_up_at: string | null
-  analyzed_at: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -292,16 +281,6 @@ export type ProspectNoteRow = {
   created_at: string
 }
 
-export type ProspectAuditRow = {
-  id: string
-  prospect_id: string
-  website_url: string | null
-  https: boolean | null
-  http_status: number | null
-  raw: Record<string, unknown>
-  created_at: string
-}
-
 type TableDef<Row> = {
   Row: Row
   Insert: Partial<Row> & { id?: string }
@@ -325,7 +304,6 @@ export type Database = {
       documents: TableDef<DocumentRecord>
       prospect_searches: TableDef<ProspectSearchRow>
       prospects: TableDef<ProspectRow>
-      prospect_audits: TableDef<ProspectAuditRow>
       prospect_lists: TableDef<ProspectListRow>
       prospect_list_items: TableDef<ProspectListItemRow>
       prospect_notes: TableDef<ProspectNoteRow>

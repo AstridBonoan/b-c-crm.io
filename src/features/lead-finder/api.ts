@@ -1,11 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import { discoverBusinesses, type DiscoveryQuery } from '@/features/lead-finder/discovery'
-import {
-  computeOpportunityScore,
-  type OpportunityScoreResult,
-  type ProspectFinding,
-} from '@/features/lead-finder/scoring'
-import { analyzeWebsiteUrl } from '@/features/lead-finder/websiteAnalysis'
 import type { ProspectSearchFormValues } from '@/features/lead-finder/schemas'
 import type {
   Prospect,
@@ -21,25 +15,12 @@ import { createClient } from '@/features/clients/api'
 export type ProspectFilters = {
   search: string
   industry: string | 'all'
-  minOpportunity: number | 'all'
   hasWebsite: 'all' | 'yes' | 'no'
-  hasContactForm: 'all' | 'yes' | 'no'
-  service: string | 'all'
-  sort: 'opportunity_desc' | 'website_asc' | 'name_asc'
-}
-
-function asFindings(value: unknown): ProspectFinding[] {
-  return Array.isArray(value) ? (value as ProspectFinding[]) : []
+  sort: 'name_asc' | 'newest'
 }
 
 function mapProspect(row: Record<string, unknown>): Prospect {
-  return {
-    ...(row as unknown as Prospect),
-    findings: asFindings(row.findings),
-    recommended_services: Array.isArray(row.recommended_services)
-      ? (row.recommended_services as string[])
-      : [],
-  }
+  return row as unknown as Prospect
 }
 
 export async function listProspects(filters: ProspectFilters): Promise<Prospect[]> {
@@ -47,18 +28,11 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   let query = supabase.from('prospects').select('*')
 
   if (filters.industry !== 'all') query = query.ilike('industry', `%${filters.industry}%`)
-  if (filters.minOpportunity !== 'all') {
-    query = query.gte('opportunity_score', filters.minOpportunity)
-  }
   if (filters.hasWebsite === 'yes') query = query.eq('has_website', true)
   if (filters.hasWebsite === 'no') query = query.eq('has_website', false)
-  if (filters.service !== 'all') {
-    query = query.contains('recommended_services', [filters.service])
-  }
 
-  if (filters.sort === 'website_asc') query = query.order('website_score', { ascending: true })
-  else if (filters.sort === 'name_asc') query = query.order('business_name', { ascending: true })
-  else query = query.order('opportunity_score', { ascending: false })
+  if (filters.sort === 'name_asc') query = query.order('business_name', { ascending: true })
+  else query = query.order('created_at', { ascending: false })
 
   const search = filters.search.trim()
   if (search) {
@@ -70,18 +44,7 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   const { data, error } = await query
   if (error) throw new Error(error.message)
 
-  let rows = (data ?? []).map((row) => mapProspect(row as Record<string, unknown>))
-
-  if (filters.hasContactForm !== 'all') {
-    rows = rows.filter((p) => {
-      const missing = p.findings.some((f) =>
-        f.message.toLowerCase().includes('no contact form'),
-      )
-      return filters.hasContactForm === 'yes' ? !missing && p.has_website : missing || !p.has_website
-    })
-  }
-
-  return rows
+  return (data ?? []).map((row) => mapProspect(row as Record<string, unknown>))
 }
 
 export async function getProspect(id: string): Promise<Prospect> {
@@ -146,22 +109,6 @@ export async function updateProspectNotesField(id: string, notes: string): Promi
   if (error) throw new Error(error.message)
 }
 
-function scoreToColumns(score: OpportunityScoreResult) {
-  const byKey = Object.fromEntries(score.lines.map((line) => [line.key, line.earned]))
-  return {
-    opportunity_score: score.total,
-    website_score: Math.round(((byKey.websiteQuality ?? 0) / 30) * 100),
-    mobile_score: Math.round(((byKey.mobileExperience ?? 0) / 20) * 100),
-    seo_score: Math.round(((byKey.seo ?? 0) / 15) * 100),
-    performance_score: Math.round(((byKey.performance ?? 0) / 15) * 100),
-    online_presence_score: Math.round(((byKey.onlinePresence ?? 0) / 10) * 100),
-    lead_gen_score: Math.round(((byKey.leadGeneration ?? 0) / 10) * 100),
-    score_breakdown: score,
-    findings: score.findings,
-    recommended_services: score.recommendedServices,
-  }
-}
-
 export async function runProspectSearch(
   values: ProspectSearchFormValues,
   userId: string | undefined,
@@ -202,55 +149,39 @@ export async function runProspectSearch(
   if (searchError) throw new Error(searchError.message)
 
   const { businesses, warning } = await discoverBusinesses(discoveryQuery)
-  const supabaseFn = getSupabaseClient()
 
-  const rows: ProspectRow[] = []
-  for (const biz of businesses) {
-    const analysis = await analyzeWebsiteUrl(biz.website ?? '', async (name, body) => {
-      const result = await supabaseFn.functions.invoke(name, { body })
-      return { data: result.data, error: result.error as Error | null }
-    })
-
-    const score = computeOpportunityScore(analysis.signals, {})
-    const cols = scoreToColumns(score)
-
-    rows.push({
-      id: crypto.randomUUID(),
-      search_id: searchRow.id,
-      external_id: biz.externalId,
-      business_name: biz.businessName,
-      industry: biz.industry,
-      category: biz.category,
-      address: biz.address,
-      city: biz.city,
-      state: biz.state,
-      zip: biz.zip,
-      phone: biz.phone,
-      website: biz.website,
-      latitude: biz.latitude,
-      longitude: biz.longitude,
-      google_business_url: null,
-      facebook_url: null,
-      instagram_url: null,
-      linkedin_url: null,
-      yelp_url: null,
-      has_website: Boolean(biz.website),
-      ...cols,
-      score_breakdown: cols.score_breakdown as unknown as Record<string, unknown>,
-      findings: cols.findings,
-      pipeline_status: 'new',
-      saved_to_crm: false,
-      crm_lead_id: null,
-      crm_client_id: null,
-      notes: null,
-      last_contacted_at: null,
-      next_follow_up_at: null,
-      analyzed_at: new Date().toISOString(),
-      created_by: userId ?? null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-  }
+  const rows: ProspectRow[] = businesses.map((biz) => ({
+    id: crypto.randomUUID(),
+    search_id: searchRow.id,
+    external_id: biz.externalId,
+    business_name: biz.businessName,
+    industry: biz.industry,
+    category: biz.category,
+    address: biz.address,
+    city: biz.city,
+    state: biz.state,
+    zip: biz.zip,
+    phone: biz.phone,
+    website: biz.website,
+    latitude: biz.latitude,
+    longitude: biz.longitude,
+    google_business_url: null,
+    facebook_url: null,
+    instagram_url: null,
+    linkedin_url: null,
+    yelp_url: null,
+    has_website: Boolean(biz.website),
+    pipeline_status: 'new',
+    saved_to_crm: false,
+    crm_lead_id: null,
+    crm_client_id: null,
+    notes: null,
+    last_contacted_at: null,
+    next_follow_up_at: null,
+    created_by: userId ?? null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }))
 
   if (rows.length > 0) {
     const { error: insertError } = await supabase.from('prospects').insert(
@@ -267,11 +198,8 @@ export async function runProspectSearch(
   const prospects = await listProspects({
     search: '',
     industry: 'all',
-    minOpportunity: 'all',
     hasWebsite: 'all',
-    hasContactForm: 'all',
-    service: 'all',
-    sort: 'opportunity_desc',
+    sort: 'newest',
   })
 
   const forSearch = prospects.filter((p) => p.search_id === searchRow.id)
@@ -300,19 +228,7 @@ export async function saveProspectToCrm(
       phone: prospect.phone ?? undefined,
       address: prospect.address ?? undefined,
       location: [prospect.city, prospect.state].filter(Boolean).join(', ') || undefined,
-      notes: [
-        `Imported from Lead Finder (score ${prospect.opportunity_score}).`,
-        prospect.recommended_services.length
-          ? `Recommended: ${prospect.recommended_services.join(', ')}`
-          : null,
-        prospect.findings
-          .filter((f) => f.severity !== 'info')
-          .slice(0, 8)
-          .map((f) => `• ${f.message}`)
-          .join('\n') || null,
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
+      notes: 'Imported from Lead Finder.',
     },
     userId,
   )
@@ -320,17 +236,16 @@ export async function saveProspectToCrm(
   const lead = await createLead(
     {
       source: 'Lead Finder',
-      service_interested: prospect.recommended_services[0] ?? prospect.industry ?? '',
+      service_interested: prospect.industry ?? '',
       status: 'new',
       estimated_value: '',
-      notes: `Prospect score ${prospect.opportunity_score}/100. ${prospect.website ?? 'No website'}.`,
+      notes: prospect.website ? `Website: ${prospect.website}` : 'No website listed.',
       last_contacted_at: '',
       next_follow_up_at: prospect.next_follow_up_at ?? '',
     },
     userId,
   )
 
-  // Link lead to client
   const supabase = getSupabaseClient()
   const { error: leadUpdateError } = await supabase
     .from('leads')
@@ -398,10 +313,6 @@ export function prospectsToCsv(prospects: Prospect[]): string {
     'state',
     'phone',
     'website',
-    'opportunity_score',
-    'website_score',
-    'seo_score',
-    'recommended_services',
     'pipeline_status',
   ]
   const lines = [header.join(',')]
@@ -413,10 +324,6 @@ export function prospectsToCsv(prospects: Prospect[]): string {
       p.state ?? '',
       p.phone ?? '',
       p.website ?? '',
-      String(p.opportunity_score),
-      String(p.website_score),
-      String(p.seo_score),
-      p.recommended_services.join('; '),
       p.pipeline_status,
     ].map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
     lines.push(row.join(','))

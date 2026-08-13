@@ -1,33 +1,25 @@
 # Lead Finder
 
-Internal prospecting for B&C founders (CTO and CMO — full shared access). Deterministic scoring — **no AI**.
+Internal prospecting for B&C founders (CTO and CMO — full shared access).
 
-Roles are soft labels only: growth work often sits with the CMO, but both founders can search, score, save, and follow up.
+Roles are soft labels only: growth work often sits with the CMO, but both founders can search, save, and follow up.
 
 ## Phase 1 (this branch)
 
 - Prospect search (industry, city, state, ZIP, radius, website filter)
-- Discovery via OpenStreetMap Overpass (+ demo fallback)
-- Rule-based Opportunity Score with per-category reasons
-- Findings → recommended B&C services
+- Discovery via OpenStreetMap Overpass (errors/empty results surface as warnings — no demo data)
 - Prospect list filters/sort + CSV export
-- Prospect detail (scores, problems, services, notes, pipeline)
+- Prospect detail (contact info, notes, pipeline)
 - **Save lead to CRM** (creates client + lead)
 
 ## Apply in Supabase
 
 1. Run `supabase/migrations/20260813170000_lead_finder.sql`
-2. Optional: deploy Edge Function for full website HTML audits:
-
-```bash
-supabase functions deploy analyze-website
-```
-
-Without the function, websites still score on presence/HTTPS heuristics; HTML checks are marked incomplete.
+2. If you already applied an earlier Lead Finder migration that included scoring columns, also run `supabase/migrations/20260813180000_remove_prospect_scoring.sql`
 
 ## Workflow
 
-Search → Discover → Score → Filter → Review → Save to CRM → Contact in Leads
+Search → Discover → Filter → Review → Save to CRM → Contact in Leads
 
 ## Later phases
 
@@ -35,4 +27,3 @@ Search → Discover → Score → Filter → Review → Save to CRM → Contact 
 - Lists UI (tables exist)
 - Excel/PDF export
 - Dashboard widgets for follow-ups
-- Full Lighthouse metrics via a worker
