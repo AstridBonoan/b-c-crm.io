@@ -82,6 +82,10 @@ export function ProfileForm({
         <input type="checkbox" className="rounded border-line" {...register('is_active')} />
         Active team member
       </label>
+      <p className="text-xs text-ink-muted">
+        Activation only works for emails on the employee allowlist in Supabase. You and Charlie stay
+        active if your emails were seeded from existing profiles.
+      </p>
 
       {formError ? (
         <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">

@@ -1,238 +1,104 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import {
-  loginSchema,
-  signupSchema,
-  type LoginFormValues,
-} from '@/features/auth/schemas'
+import { loginSchema, type LoginFormValues } from '@/features/auth/schemas'
 import { useAuth } from '@/features/auth/useAuth'
-import { USER_ROLES } from '@/features/roles/roles'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { useTheme } from '@/features/theme/useTheme'
+import { useState } from 'react'
 
-type Mode = 'signin' | 'signup'
-
-type CredentialsFormProps = {
-  mode: Mode
-  configured: boolean
-  onSwitchMode: (mode: Mode) => void
-}
-
-function CredentialsForm({ mode, configured, onSwitchMode }: CredentialsFormProps) {
-  const { signIn, signUp } = useAuth()
+function SignInForm({ configured }: { configured: boolean }) {
+  const { signIn } = useAuth()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(mode === 'signup' ? signupSchema : loginSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
-      full_name: '',
-      role: undefined,
     },
   })
 
-  const selectedRole = watch('role')
-
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-    setInfoMessage(null)
-
-    if (mode === 'signin') {
-      const result = await signIn(values.email, values.password)
-      if (result.error) {
-        setSubmitError(result.error)
-        return
-      }
-      navigate('/', { replace: true })
-      return
-    }
-
-    if (!values.role) {
-      setSubmitError('Select your position')
-      return
-    }
-
-    const result = await signUp(values.email, values.password, {
-      fullName: values.full_name,
-      role: values.role,
-    })
+    const result = await signIn(values.email, values.password)
     if (result.error) {
       setSubmitError(result.error)
       return
     }
-
-    if (result.needsEmailConfirmation) {
-      setInfoMessage(
-        'Account created, but Supabase requires email confirmation before sign-in. In the Supabase dashboard go to Authentication → Providers → Email and turn off “Confirm email”, then sign in. Or confirm via the email link.',
-      )
-      onSwitchMode('signin')
-      return
-    }
-
     navigate('/', { replace: true })
   })
 
   return (
-    <>
-      <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
-        {mode === 'signup' ? (
-          <div>
-            <label htmlFor="full_name" className="block text-sm font-medium text-ink">
-              Full name
-            </label>
-            <input
-              id="full_name"
-              type="text"
-              autoComplete="name"
-              className="input-field mt-1 rounded-md"
-              {...register('full_name')}
-            />
-            {errors.full_name ? (
-              <p className="mt-1 text-xs text-danger">{errors.full_name.message}</p>
-            ) : null}
-          </div>
-        ) : null}
+    <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-ink">
+          Work email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="username"
+          className="input-field mt-1 rounded-md"
+          {...register('email')}
+        />
+        {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+      </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-ink">
-            Work email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="username"
-            className="input-field mt-1 rounded-md"
-            {...register('email')}
-          />
-          {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-ink">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          className="input-field mt-1 rounded-md"
+          {...register('password')}
+        />
+        {errors.password ? (
+          <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+        ) : null}
+      </div>
+
+      {!configured ? (
+        <div className="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          Supabase environment variables are not configured yet. Copy{' '}
+          <code className="font-mono text-xs">.env.example</code> to{' '}
+          <code className="font-mono text-xs">.env</code> and set your project credentials.
         </div>
+      ) : null}
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-ink">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            className="input-field mt-1 rounded-md"
-            {...register('password')}
-          />
-          {errors.password ? (
-            <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
-          ) : null}
-        </div>
+      {submitError ? (
+        <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
+          {submitError}
+        </p>
+      ) : null}
 
-        {mode === 'signup' ? (
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium text-ink">
-              Position
-            </label>
-            <select id="role" className="input-field mt-1 rounded-md" {...register('role')}>
-              <option value="">Select your role…</option>
-              {USER_ROLES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.title}
-                </option>
-              ))}
-            </select>
-            {errors.role ? (
-              <p className="mt-1 text-xs text-danger">{errors.role.message}</p>
-            ) : selectedRole ? (
-              <p className="mt-1 text-xs text-ink-muted">
-                {USER_ROLES.find((item) => item.value === selectedRole)?.summary}
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-ink-muted">
-                Soft ownership only — both founders keep full access.
-              </p>
-            )}
-          </div>
-        ) : null}
-
-        {!configured ? (
-          <div className="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-            Supabase environment variables are not configured yet. Copy{' '}
-            <code className="font-mono text-xs">.env.example</code> to{' '}
-            <code className="font-mono text-xs">.env</code> and set your project credentials.
-          </div>
-        ) : null}
-
-        {submitError ? (
-          <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
-            {submitError}
-          </p>
-        ) : null}
-
-        {infoMessage ? (
-          <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">
-            {infoMessage}
-          </p>
-        ) : null}
-
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting
-            ? mode === 'signin'
-              ? 'Signing in…'
-              : 'Creating account…'
-            : mode === 'signin'
-              ? 'Sign in'
-              : 'Create account'}
-        </Button>
-      </form>
-
-      <p className="mt-5 text-center text-sm text-ink-muted">
-        {mode === 'signin' ? (
-          <>
-            First time here?{' '}
-            <button
-              type="button"
-              className="font-medium text-teal hover:underline"
-              onClick={() => onSwitchMode('signup')}
-            >
-              Create your account
-            </button>
-          </>
-        ) : (
-          <>
-            Already have an account?{' '}
-            <button
-              type="button"
-              className="font-medium text-teal hover:underline"
-              onClick={() => onSwitchMode('signin')}
-            >
-              Sign in
-            </button>
-          </>
-        )}
-      </p>
-    </>
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting ? 'Signing in…' : 'Sign in'}
+      </Button>
+    </form>
   )
 }
 
 export function LoginPage() {
-  const { user, loading, configured } = useAuth()
+  const { user, profile, loading, configured } = useAuth()
   const { theme } = useTheme()
-  const [mode, setMode] = useState<Mode>('signin')
 
   if (loading) {
     return <LoadingScreen label="Loading…" />
   }
 
-  if (user) {
+  if (user && profile?.is_active) {
     return <Navigate to="/" replace />
   }
 
@@ -275,7 +141,7 @@ export function LoginPage() {
             theme === 'dark' ? 'text-slate-400' : 'text-ink-muted'
           }`}
         >
-          Employee access only. Customers do not log in here.
+          Invite-only. Public signup is disabled.
         </p>
       </section>
 
@@ -285,21 +151,13 @@ export function LoginPage() {
             <BrandLogo className="mb-4 h-16 w-auto max-w-[220px] object-contain" />
             <p className="text-xs tracking-[0.18em] text-teal uppercase">Internal CRM</p>
           </div>
-          <h2 className="mt-2 text-xl font-semibold text-ink lg:mt-0">
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
-          </h2>
+          <h2 className="mt-2 text-xl font-semibold text-ink lg:mt-0">Sign in</h2>
           <p className="mt-2 text-sm text-ink-muted">
-            {mode === 'signin'
-              ? 'Use your B&C employee email and password.'
-              : 'Choose your founder position when you create your account.'}
+            Use your allowlisted B&amp;C employee email and password. New accounts are not created
+            here — founders add people in Supabase.
           </p>
 
-          <CredentialsForm
-            key={mode}
-            mode={mode}
-            configured={configured}
-            onSwitchMode={setMode}
-          />
+          <SignInForm configured={configured} />
         </div>
       </section>
     </div>

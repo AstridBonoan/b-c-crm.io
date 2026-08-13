@@ -89,7 +89,7 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Live overview of leads, pipeline, customers, and delivery work."
+        description="Live overview of leads, pipeline, clients, and delivery work."
         actions={
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
