@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
+  getLatestProspectSearchId,
   listProspects,
   prospectsToCsv,
   runProspectSearch,
@@ -32,7 +33,10 @@ export function LeadFinderPage() {
     industry: 'all',
     hasWebsite: 'all',
     sort: 'newest',
+    searchId: null,
   })
+  const [activeSearchLabel, setActiveSearchLabel] = useState<string | null>(null)
+  const [showAllSearches, setShowAllSearches] = useState(false)
 
   const {
     register,
@@ -65,7 +69,17 @@ export function LeadFinderPage() {
   }
 
   useEffect(() => {
-    void load()
+    void (async () => {
+      try {
+        const latestId = await getLatestProspectSearchId()
+        const next = { ...filters, searchId: latestId }
+        setFilters(next)
+        await load(next)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load prospects')
+        setLoading(false)
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -73,10 +87,14 @@ export function LeadFinderPage() {
     setSearching(true)
     setError(null)
     setWarning(null)
+    setShowAllSearches(false)
     try {
       const result = await runProspectSearch(values, user?.id)
       setWarning(result.warning ?? null)
-      await load({ ...filters, sort: 'newest' })
+      setActiveSearchLabel(result.search.query_label)
+      const next = { ...filters, sort: 'newest' as const, searchId: result.search.id }
+      setFilters(next)
+      setProspects(result.prospects)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -86,6 +104,21 @@ export function LeadFinderPage() {
 
   const applyFilters = async (patch: Partial<ProspectFilters>) => {
     const next = { ...filters, ...patch }
+    setFilters(next)
+    await load(next)
+  }
+
+  const toggleShowAll = async () => {
+    const nextShow = !showAllSearches
+    setShowAllSearches(nextShow)
+    if (nextShow) {
+      const next = { ...filters, searchId: null }
+      setFilters(next)
+      await load(next)
+      return
+    }
+    const latestId = await getLatestProspectSearchId()
+    const next = { ...filters, searchId: latestId }
     setFilters(next)
     await load(next)
   }
@@ -116,8 +149,8 @@ export function LeadFinderPage() {
       <Panel className="mb-4 px-4 py-4">
         <h2 className="text-sm font-semibold text-ink">Prospect search</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Searches public OpenStreetMap data only — no demo or placeholder businesses. Results stay
-          within the state you enter.
+          Live OpenStreetMap results only. Businesses must match the city and state you enter —
+          neighboring towns and neighborhoods are excluded.
         </p>
         <form className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={onSearch}>
           <div>
@@ -157,8 +190,8 @@ export function LeadFinderPage() {
             <label className="text-xs font-medium text-ink-muted">Website</label>
             <select className="input-field mt-1 rounded-md" {...register('requires_website')}>
               <option value="any">Any</option>
-              <option value="yes">Has website</option>
-              <option value="no">No website</option>
+              <option value="yes">Has website found</option>
+              <option value="no">No website found</option>
             </select>
           </div>
           <div className="flex items-end">
@@ -185,8 +218,8 @@ export function LeadFinderPage() {
           }
         >
           <option value="all">Website: any</option>
-          <option value="yes">Has website</option>
-          <option value="no">No website</option>
+          <option value="yes">Website found</option>
+          <option value="no">Website unknown</option>
         </select>
         <select
           className="input-field rounded-md lg:w-auto"
@@ -198,7 +231,14 @@ export function LeadFinderPage() {
           <option value="newest">Newest</option>
           <option value="name_asc">Name A–Z</option>
         </select>
+        <Button variant="secondary" type="button" onClick={() => void toggleShowAll()}>
+          {showAllSearches ? 'Show latest search only' : 'Show all saved prospects'}
+        </Button>
       </div>
+
+      {activeSearchLabel && !showAllSearches ? (
+        <p className="mb-3 text-xs text-ink-muted">Showing results for: {activeSearchLabel}</p>
+      ) : null}
 
       {warning ? (
         <p
@@ -266,7 +306,18 @@ export function LeadFinderPage() {
                         Visit
                       </a>
                     ) : (
-                      'None'
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(
+                          `"${p.business_name}" ${[p.city, p.state].filter(Boolean).join(' ')} website`,
+                        )}`}
+                        className="text-ink-muted hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Website not in map data — search the web"
+                      >
+                        Find…
+                      </a>
                     )}
                   </td>
                   <td className="px-4 py-3">

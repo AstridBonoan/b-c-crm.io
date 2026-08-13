@@ -121,23 +121,37 @@ export function ProspectDetailPage() {
             <dt className="text-ink-muted">Phone</dt>
             <dd className="text-ink">{prospect.phone ?? '—'}</dd>
           </div>
-          <div>
-            <dt className="text-ink-muted">Website</dt>
-            <dd className="text-ink">
-              {prospect.website ? (
-                <a
-                  href={prospect.website}
-                  className="text-blue hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {prospect.website}
-                </a>
-              ) : (
-                'None'
-              )}
-            </dd>
-          </div>
+            <div>
+              <dt className="text-ink-muted">Website</dt>
+              <dd className="text-ink">
+                {prospect.website ? (
+                  <a
+                    href={prospect.website}
+                    className="text-blue hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {prospect.website}
+                  </a>
+                ) : (
+                  <span>
+                    Not found in map/company data.{' '}
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(
+                        `"${prospect.business_name}" ${[prospect.city, prospect.state]
+                          .filter(Boolean)
+                          .join(' ')} website`,
+                      )}`}
+                      className="text-blue hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Search Google
+                    </a>
+                  </span>
+                )}
+              </dd>
+            </div>
           <div>
             <dt className="text-ink-muted">Address</dt>
             <dd className="text-ink">

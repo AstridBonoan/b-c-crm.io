@@ -17,6 +17,8 @@ export type ProspectFilters = {
   industry: string | 'all'
   hasWebsite: 'all' | 'yes' | 'no'
   sort: 'name_asc' | 'newest'
+  /** When set, only show prospects from this search run. */
+  searchId?: string | null
 }
 
 function mapProspect(row: Record<string, unknown>): Prospect {
@@ -27,6 +29,7 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   const supabase = getSupabaseClient()
   let query = supabase.from('prospects').select('*')
 
+  if (filters.searchId) query = query.eq('search_id', filters.searchId)
   if (filters.industry !== 'all') query = query.ilike('industry', `%${filters.industry}%`)
   if (filters.hasWebsite === 'yes') query = query.eq('has_website', true)
   if (filters.hasWebsite === 'no') query = query.eq('has_website', false)
@@ -45,6 +48,18 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   if (error) throw new Error(error.message)
 
   return (data ?? []).map((row) => mapProspect(row as Record<string, unknown>))
+}
+
+export async function getLatestProspectSearchId(): Promise<string | null> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('prospect_searches')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data?.id ?? null
 }
 
 export async function getProspect(id: string): Promise<Prospect> {
@@ -200,13 +215,12 @@ export async function runProspectSearch(
     industry: 'all',
     hasWebsite: 'all',
     sort: 'newest',
+    searchId: searchRow.id,
   })
-
-  const forSearch = prospects.filter((p) => p.search_id === searchRow.id)
 
   return {
     search: searchRow as ProspectSearch,
-    prospects: forSearch,
+    prospects,
     warning,
   }
 }
@@ -239,7 +253,9 @@ export async function saveProspectToCrm(
       service_interested: prospect.industry ?? '',
       status: 'new',
       estimated_value: '',
-      notes: prospect.website ? `Website: ${prospect.website}` : 'No website listed.',
+      notes: prospect.website
+        ? `Website: ${prospect.website}`
+        : 'Website not found in map/company data — verify manually.',
       last_contacted_at: '',
       next_follow_up_at: prospect.next_follow_up_at ?? '',
     },
