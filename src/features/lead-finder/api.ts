@@ -5,7 +5,6 @@ import type {
   Prospect,
   ProspectList,
   ProspectNote,
-  ProspectPipelineStatus,
   ProspectSearch,
 } from '@/features/lead-finder/types'
 import type { ProspectRow } from '@/types/database'
@@ -107,15 +106,6 @@ export async function addProspectNote(
   }
 
   return data as ProspectNote
-}
-
-export async function updateProspectStatus(
-  id: string,
-  pipeline_status: ProspectPipelineStatus,
-): Promise<void> {
-  const supabase = getSupabaseClient()
-  const { error } = await supabase.from('prospects').update({ pipeline_status }).eq('id', id)
-  if (error) throw new Error(error.message)
 }
 
 export async function updateProspectNotesField(id: string, notes: string): Promise<void> {
@@ -329,7 +319,6 @@ export function prospectsToCsv(prospects: Prospect[]): string {
     'state',
     'phone',
     'website',
-    'pipeline_status',
   ]
   const lines = [header.join(',')]
   for (const p of prospects) {
@@ -340,7 +329,6 @@ export function prospectsToCsv(prospects: Prospect[]): string {
       p.state ?? '',
       p.phone ?? '',
       p.website ?? '',
-      p.pipeline_status,
     ].map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
     lines.push(row.join(','))
   }
