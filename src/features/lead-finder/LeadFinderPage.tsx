@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
@@ -275,7 +274,6 @@ export function LeadFinderPage() {
                 <th className="px-4 py-3 font-semibold">Location</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 font-semibold">Website</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -319,11 +317,6 @@ export function LeadFinderPage() {
                         Search to confirm
                       </a>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={p.saved_to_crm ? 'success' : 'neutral'}>
-                      {p.saved_to_crm ? 'In CRM' : p.pipeline_status}
-                    </Badge>
                   </td>
                 </tr>
               ))}

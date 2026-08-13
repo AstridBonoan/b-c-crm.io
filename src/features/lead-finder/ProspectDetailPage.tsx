@@ -10,9 +10,8 @@ import {
   listProspectNotes,
   saveProspectToCrm,
   updateProspectNotesField,
-  updateProspectStatus,
 } from '@/features/lead-finder/api'
-import { PIPELINE_STATUSES, type Prospect, type ProspectNote } from '@/features/lead-finder/types'
+import type { Prospect, ProspectNote } from '@/features/lead-finder/types'
 
 export function ProspectDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -163,27 +162,6 @@ export function ProspectDetailPage() {
           <div>
             <dt className="text-ink-muted">Industry</dt>
             <dd className="text-ink">{prospect.industry ?? prospect.category ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Pipeline</dt>
-            <dd className="mt-1">
-              <select
-                className="input-field rounded-md"
-                value={prospect.pipeline_status}
-                onChange={(e) =>
-                  void updateProspectStatus(
-                    prospect.id,
-                    e.target.value as Prospect['pipeline_status'],
-                  ).then(() => load())
-                }
-              >
-                {PIPELINE_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </dd>
           </div>
           {prospect.saved_to_crm && prospect.crm_lead_id ? (
             <div>

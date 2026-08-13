@@ -74,14 +74,3 @@ export type ProspectNote = {
   created_by: string | null
   created_at: string
 }
-
-export const PIPELINE_STATUSES: { value: ProspectPipelineStatus; label: string }[] = [
-  { value: 'new', label: 'New' },
-  { value: 'researching', label: 'Researching' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'responded', label: 'Responded' },
-  { value: 'meeting', label: 'Meeting' },
-  { value: 'proposal', label: 'Proposal' },
-  { value: 'won', label: 'Won' },
-  { value: 'lost', label: 'Lost' },
-]

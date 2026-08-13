@@ -9,7 +9,7 @@ Roles are soft labels only: growth work often sits with the CMO, but both founde
 - Prospect search (industry, city, state, ZIP, radius, website filter)
 - Discovery via OpenStreetMap Overpass (errors/empty results surface as warnings — no demo data)
 - Prospect list filters/sort + CSV export
-- Prospect detail (contact info, notes, pipeline)
+- Prospect detail (contact info, notes)
 - **Save lead to CRM** (creates client + lead)
 
 ## Apply in Supabase
