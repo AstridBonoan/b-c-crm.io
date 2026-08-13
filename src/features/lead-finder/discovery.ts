@@ -137,19 +137,36 @@ type OsmElement = {
   tags?: Record<string, string>
 }
 
+type GeocodeResult = {
+  lat: number
+  lon: number
+  osmType: string
+  osmId: number
+  areaName: string
+}
+
+function overpassAreaId(osmType: string, osmId: number): number | null {
+  if (osmType === 'relation') return 3_600_000_000 + osmId
+  if (osmType === 'way') return 2_400_000_000 + osmId
+  return null
+}
+
+function escapeOverpassString(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
+}
+
 async function geocodeCity(
   city: string,
   state: string,
   zip?: string,
-): Promise<{ lat: number; lon: number }> {
+): Promise<GeocodeResult> {
   const stateCode = normalizeState(state) ?? state
-  // Free-form query is more reliable than structured city= + state= for US places.
   const q = zip
-    ? `${zip}, ${stateCode}, USA`
+    ? `${city}, ${zip}, ${stateCode}, USA`
     : `${city}, ${stateCode}, USA`
   const params = new URLSearchParams({
     format: 'json',
-    limit: '1',
+    limit: '8',
     countrycodes: 'us',
     addressdetails: '1',
     q,
@@ -165,7 +182,21 @@ async function geocodeCity(
   const data = (await res.json()) as {
     lat: string
     lon: string
-    address?: { state?: string; 'ISO3166-2-lvl4'?: string }
+    osm_type?: string
+    osm_id?: number
+    class?: string
+    type?: string
+    display_name?: string
+    address?: {
+      state?: string
+      'ISO3166-2-lvl4'?: string
+      city?: string
+      town?: string
+      village?: string
+      borough?: string
+      municipality?: string
+      county?: string
+    }
   }[]
 
   if (!data[0]) {
@@ -175,48 +206,87 @@ async function geocodeCity(
   }
 
   const requested = normalizeState(state)
-  if (requested && data[0].address) {
-    const iso = data[0].address['ISO3166-2-lvl4']?.split('-')[1]
-    const got = normalizeState(iso || data[0].address.state)
+  const inState = data.filter((row) => {
+    if (!requested || !row.address) return true
+    const iso = row.address['ISO3166-2-lvl4']?.split('-')[1]
+    const got = normalizeState(iso || row.address.state)
+    return !got || got === requested
+  })
+  const pool = inState.length > 0 ? inState : data
+
+  const prefer =
+    pool.find(
+      (row) =>
+        row.osm_type === 'relation' &&
+        (row.class === 'boundary' || row.type === 'administrative' || row.class === 'place'),
+    ) ??
+    pool.find((row) => row.osm_type === 'relation') ??
+    pool[0]
+
+  if (requested && prefer.address) {
+    const iso = prefer.address['ISO3166-2-lvl4']?.split('-')[1]
+    const got = normalizeState(iso || prefer.address.state)
     if (got && got !== requested) {
       throw new Error(
-        `Location lookup resolved outside ${requested} (got ${got}). Refine city/state or ZIP.`,
+        `Location lookup resolved outside ${requested} (got ${got}). Refine city/borough or ZIP.`,
       )
     }
   }
 
-  return { lat: Number(data[0].lat), lon: Number(data[0].lon) }
+  if (!prefer.osm_id || !prefer.osm_type) {
+    throw new Error(
+      `Could not resolve a map boundary for “${[city, stateCode].filter(Boolean).join(', ')}”.`,
+    )
+  }
+
+  const areaName =
+    prefer.address?.borough ||
+    prefer.address?.city ||
+    prefer.address?.town ||
+    prefer.address?.village ||
+    prefer.address?.municipality ||
+    city.trim()
+
+  return {
+    lat: Number(prefer.lat),
+    lon: Number(prefer.lon),
+    osmType: prefer.osm_type,
+    osmId: prefer.osm_id,
+    areaName,
+  }
 }
 
 /**
- * Intersect radius with the US state polygon (ISO3166-2), so NJ searches
- * cannot return Queens / Maspeth even when they fall inside the radius.
+ * Search inside the city/borough polygon and the state polygon.
+ * Radius only limits how far from the city center, still inside that city.
  */
 function buildOverpassQuery(
-  lat: number,
-  lon: number,
+  center: GeocodeResult,
   radiusMeters: number,
   tags: string[],
   stateCode: string | null,
 ) {
-  const areaPreamble = stateCode
-    ? `area["ISO3166-2"="US-${stateCode}"]->.searchArea;`
-    : ''
-  const areaFilter = stateCode ? `(area.searchArea)` : ''
+  const areaId = overpassAreaId(center.osmType, center.osmId)
+  const cityArea = areaId
+    ? `area(${areaId})->.city;`
+    : `area["name"="${escapeOverpassString(center.areaName)}"]["boundary"="administrative"]->.city;`
+  const stateArea = stateCode ? `area["ISO3166-2"="US-${stateCode}"]->.state;` : ''
+  const stateFilter = stateCode ? '(area.state)' : ''
 
   const tagFilters = tags
     .map((tag) => {
       const [k, v] = tag.split('=')
       return [
-        `node["${k}"="${v}"](around:${Math.round(radiusMeters)},${lat},${lon})${areaFilter};`,
-        `way["${k}"="${v}"](around:${Math.round(radiusMeters)},${lat},${lon})${areaFilter};`,
+        `node["${k}"="${v}"](area.city)${stateFilter}(around:${Math.round(radiusMeters)},${center.lat},${center.lon});`,
+        `way["${k}"="${v}"](area.city)${stateFilter}(around:${Math.round(radiusMeters)},${center.lat},${center.lon});`,
       ].join('\n')
     })
     .join('\n')
 
   return `
 [out:json][timeout:30];
-${areaPreamble}
+${stateArea}
+${cityArea}
 (
 ${tagFilters}
 );
@@ -247,10 +317,12 @@ function normalizePlaceName(raw: string): string {
   return raw
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ')
-    .replace(/\b(city|town|village|borough|of)\b/g, ' ')
+    .replace(/\b(the|city|town|village|borough|of)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+const NYC_BOROUGHS = new Set(['brooklyn', 'queens', 'manhattan', 'bronx', 'staten island'])
 
 function cityMatchNames(city: string): string[] {
   const n = normalizePlaceName(city)
@@ -277,30 +349,35 @@ function localityMatches(requestedCity: string, candidates: (string | null | und
   return false
 }
 
-function matchesRequestedCity(
+function isGenericNycName(raw: string): boolean {
+  const n = normalizePlaceName(raw)
+  return n === 'new york' || n === 'nyc'
+}
+
+/** Drop only when tags name a *different* city/borough. Trust the map polygon otherwise. */
+function conflictsWithRequestedCity(
   requestedCity: string,
   place: NominatimLookup | undefined,
   tags: Record<string, string>,
 ): boolean {
   const official = [
+    place?.borough,
     place?.city,
     place?.town,
     place?.village,
-    place?.borough,
     place?.municipality,
-    place?.cityDistrict,
     tags['addr:city'],
     tags['addr:town'],
     tags['addr:municipality'],
-  ]
-  if (localityMatches(requestedCity, official)) return true
-  // Neighborhoods only match when the user searched that name (e.g. Maspeth).
-  return localityMatches(requestedCity, [
-    place?.suburb,
-    place?.neighbourhood,
-    tags['addr:suburb'],
-    tags['addr:place'],
-  ])
+  ].filter((value): value is string => Boolean(value))
+
+  if (official.length === 0) return false
+  if (localityMatches(requestedCity, official)) return false
+
+  const requested = normalizePlaceName(requestedCity)
+  if (NYC_BOROUGHS.has(requested) && official.every(isGenericNycName)) return false
+
+  return true
 }
 
 function normalizeWebsite(raw: string | null | undefined): string | null {
@@ -489,7 +566,7 @@ function osmKey(el: OsmElement): string {
 function mapElement(
   el: OsmElement,
   query: DiscoveryQuery,
-  center: { lat: number; lon: number },
+  center: GeocodeResult,
   place: NominatimLookup | undefined,
   website: string | null,
 ): DiscoveredBusiness | null {
@@ -511,25 +588,20 @@ function mapElement(
   const requested = normalizeState(query.state)
   const state = place?.state || normalizeState(tags['addr:state'])
   if (requested && state && state !== requested) return null
-  if (requested && !state) return null
-  if (!matchesRequestedCity(query.city, place, tags)) return null
-
-  const city = query.city.trim()
-
-  const zip = place?.zip || tags['addr:postcode'] || null
-  const addressFromPlace = [place?.houseNumber, place?.road].filter(Boolean).join(' ') || null
-  const addressFromTags =
-    [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') || null
+  if (conflictsWithRequestedCity(query.city, place, tags)) return null
 
   return {
     externalId: `osm-${el.type}-${el.id}`,
     businessName: name,
     industry: query.industry,
     category: query.category || tags.craft || tags.office || tags.shop || query.industry,
-    address: addressFromPlace || addressFromTags,
-    city,
-    state: requested || state!,
-    zip,
+    address:
+      [place?.houseNumber, place?.road].filter(Boolean).join(' ') ||
+      [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') ||
+      null,
+    city: query.city.trim(),
+    state: requested || state || query.state.toUpperCase(),
+    zip: place?.zip || tags['addr:postcode'] || null,
     phone: tags.phone || tags['contact:phone'] || null,
     website,
     latitude: lat,
@@ -543,7 +615,7 @@ export async function discoverBusinesses(query: DiscoveryQuery): Promise<Discove
 
   const radiusMeters = Math.min(Math.max(query.radiusMiles, 1), 50) * 1609.34
   const tags = tagsForIndustry(query.industry || query.category || 'default')
-  const body = buildOverpassQuery(center.lat, center.lon, radiusMeters, tags, stateCode)
+  const body = buildOverpassQuery(center, radiusMeters, tags, stateCode)
 
   let res: Response
   try {

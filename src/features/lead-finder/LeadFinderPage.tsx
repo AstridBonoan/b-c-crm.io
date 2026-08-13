@@ -149,8 +149,8 @@ export function LeadFinderPage() {
       <Panel className="mb-4 px-4 py-4">
         <h2 className="text-sm font-semibold text-ink">Prospect search</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Live OpenStreetMap results only. Businesses must match the city/borough and state you enter —
-          neighboring towns and neighborhoods are excluded.
+          Live OpenStreetMap results only. Search is clipped to the city/borough boundary and
+          state you enter — neighboring places like Maspeth are not included in a Brooklyn search.
         </p>
         <form className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={onSearch}>
           <div>
