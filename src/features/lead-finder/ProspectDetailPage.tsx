@@ -135,7 +135,7 @@ export function ProspectDetailPage() {
                   </a>
                 ) : (
                   <span>
-                    Not found in map/company data.{' '}
+                    Not on file.{' '}
                     <a
                       href={`https://www.google.com/search?q=${encodeURIComponent(
                         `"${prospect.business_name}" ${[prospect.city, prospect.state]
@@ -146,7 +146,7 @@ export function ProspectDetailPage() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Search Google
+                      Search to confirm
                     </a>
                   </span>
                 )}

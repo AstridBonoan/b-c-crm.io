@@ -314,9 +314,9 @@ export function LeadFinderPage() {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        title="Website not in map data — search the web"
+                        title="We don’t have a website on file. Search to confirm one."
                       >
-                        Find…
+                        Search to confirm
                       </a>
                     )}
                   </td>
