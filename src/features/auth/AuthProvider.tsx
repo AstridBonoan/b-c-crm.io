@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = tryGetSupabaseClient()
     if (!supabase) {
       setProfile(null)
-      return
+      return null
     }
 
     const { data, error } = await supabase
@@ -33,10 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error('Failed to load profile', error.message)
       setProfile(null)
-      return
+      return null
     }
 
     setProfile(data)
+    return data
   }, [])
 
   useEffect(() => {
@@ -78,56 +79,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadProfile])
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const supabase = tryGetSupabaseClient()
-    if (!supabase) {
-      return {
-        error:
-          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
-      }
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
-  }, [])
-
-  const signUp = useCallback(
-    async (
-      email: string,
-      password: string,
-      options?: { fullName?: string; role?: 'founder_cto' | 'founder_cmo' },
-    ) => {
+  const signIn = useCallback(
+    async (email: string, password: string) => {
       const supabase = tryGetSupabaseClient()
       if (!supabase) {
         return {
           error:
             'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.',
-          needsEmailConfirmation: false,
         }
       }
 
-      const fullName = options?.fullName?.trim() || email.split('@')[0]
-      const role = options?.role === 'founder_cmo' ? 'founder_cmo' : 'founder_cto'
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role,
-          },
-        },
-      })
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        return { error: error.message, needsEmailConfirmation: false }
+        return { error: error.message }
       }
 
-      const needsEmailConfirmation = Boolean(data.user) && !data.session
-      return { error: null, needsEmailConfirmation }
+      const userId = data.user?.id
+      if (!userId) {
+        return { error: 'Sign-in failed. Try again.' }
+      }
+
+      const nextProfile = await loadProfile(userId)
+      if (!nextProfile) {
+        await supabase.auth.signOut()
+        setProfile(null)
+        return {
+          error:
+            'No employee profile found for this account. Ask a founder to add your email to the allowlist.',
+        }
+      }
+
+      if (!nextProfile.is_active) {
+        await supabase.auth.signOut()
+        setProfile(null)
+        return {
+          error:
+            'This account is not authorized for the CRM. Access is limited to allowlisted B&C employees.',
+        }
+      }
+
+      return { error: null }
     },
-    [],
+    [loadProfile],
   )
 
   const signOut = useCallback(async () => {
@@ -153,11 +146,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       configured,
       signIn,
-      signUp,
       signOut,
       refreshProfile,
     }),
-    [session, profile, loading, configured, signIn, signUp, signOut, refreshProfile],
+    [session, profile, loading, configured, signIn, signOut, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
