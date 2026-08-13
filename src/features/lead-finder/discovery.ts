@@ -349,9 +349,69 @@ function localityMatches(requestedCity: string, candidates: (string | null | und
   return false
 }
 
+const NYC_BOROUGH_LABEL: Record<string, string> = {
+  brooklyn: 'Brooklyn',
+  kings: 'Brooklyn',
+  queens: 'Queens',
+  manhattan: 'Manhattan',
+  bronx: 'Bronx',
+  'staten island': 'Staten Island',
+  richmond: 'Staten Island',
+}
+
+/** USPS ZIP3 → NYC borough. Prefer this over a generic “New York” city tag. */
+const NYC_ZIP3_BOROUGH: Record<string, string> = {
+  '100': 'Manhattan',
+  '101': 'Manhattan',
+  '102': 'Manhattan',
+  '103': 'Staten Island',
+  '104': 'Bronx',
+  '111': 'Queens',
+  '112': 'Brooklyn',
+  '113': 'Queens',
+  '114': 'Queens',
+  '116': 'Queens',
+}
+
+function boroughFromZip(zip: string | null | undefined): string | null {
+  if (!zip) return null
+  const digits = zip.replace(/\D/g, '')
+  if (digits.length < 3) return null
+  return NYC_ZIP3_BOROUGH[digits.slice(0, 3)] ?? null
+}
+
+function asNycBorough(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  return NYC_BOROUGH_LABEL[normalizePlaceName(raw)] ?? null
+}
+
 function isGenericNycName(raw: string): boolean {
   const n = normalizePlaceName(raw)
   return n === 'new york' || n === 'nyc'
+}
+
+function displayCity(place: NominatimLookup | undefined, tags: Record<string, string>): string {
+  const zip = place?.zip || tags['addr:postcode'] || null
+  const fromZip = boroughFromZip(zip)
+  if (fromZip) return fromZip
+
+  const fromBorough = asNycBorough(
+    place?.borough || tags['addr:city'] || place?.cityDistrict || place?.city,
+  )
+  if (fromBorough) return fromBorough
+
+  const official =
+    place?.city ||
+    place?.town ||
+    place?.village ||
+    place?.municipality ||
+    tags['addr:city'] ||
+    tags['addr:town'] ||
+    null
+  if (official && !isGenericNycName(official)) return official.trim()
+
+  // No ZIP/borough — don't print "New York, NY". State (NY) is enough.
+  return ''
 }
 
 /** Drop only when tags name a *different* city/borough. Trust the map polygon otherwise. */
@@ -551,7 +611,7 @@ function mapElement(
       [place?.houseNumber, place?.road].filter(Boolean).join(' ') ||
       [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') ||
       null,
-    city: query.city.trim(),
+    city: displayCity(place, tags),
     state: requested || state || query.state.toUpperCase(),
     zip: place?.zip || tags['addr:postcode'] || null,
     phone: tags.phone || tags['contact:phone'] || null,
