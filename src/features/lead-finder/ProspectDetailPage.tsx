@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/features/auth/useAuth'
 import {
   addProspectNote,
@@ -13,15 +12,7 @@ import {
   updateProspectNotesField,
   updateProspectStatus,
 } from '@/features/lead-finder/api'
-import { scoreBandLabel, type OpportunityScoreResult } from '@/features/lead-finder/scoring'
 import { PIPELINE_STATUSES, type Prospect, type ProspectNote } from '@/features/lead-finder/types'
-
-function toneForScore(score: number): 'success' | 'brand' | 'neutral' | 'danger' {
-  if (score >= 80) return 'success'
-  if (score >= 60) return 'brand'
-  if (score >= 40) return 'neutral'
-  return 'danger'
-}
 
 export function ProspectDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -72,24 +63,13 @@ export function ProspectDetailPage() {
     )
   }
 
-  const breakdown = prospect.score_breakdown as OpportunityScoreResult | null
-  const band =
-    prospect.opportunity_score >= 80
-      ? 'high'
-      : prospect.opportunity_score >= 60
-        ? 'good'
-        : prospect.opportunity_score >= 40
-          ? 'moderate'
-          : 'low'
-
   const onSaveCrm = async () => {
     setBusy(true)
     setError(null)
     try {
-      const result = await saveProspectToCrm(prospect, user?.id)
+      await saveProspectToCrm(prospect, user?.id)
       await load()
       navigate(`/leads`)
-      console.info('Saved prospect to CRM', result.leadId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save to CRM')
     } finally {
@@ -134,141 +114,75 @@ export function ProspectDetailPage() {
         </p>
       ) : null}
 
-      <div className="mb-4 grid gap-4 lg:grid-cols-3">
-        <Panel className="px-4 py-4 lg:col-span-1">
-          <h2 className="text-sm font-semibold text-ink">Business information</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div>
-              <dt className="text-ink-muted">Phone</dt>
-              <dd className="text-ink">{prospect.phone ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-muted">Website</dt>
-              <dd className="text-ink">
-                {prospect.website ? (
-                  <a href={prospect.website} className="text-blue hover:underline" target="_blank" rel="noreferrer">
-                    {prospect.website}
-                  </a>
-                ) : (
-                  'None'
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-ink-muted">Address</dt>
-              <dd className="text-ink">
-                {[prospect.address, prospect.city, prospect.state, prospect.zip]
-                  .filter(Boolean)
-                  .join(', ') || '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-ink-muted">Pipeline</dt>
-              <dd className="mt-1">
-                <select
-                  className="input-field rounded-md"
-                  value={prospect.pipeline_status}
-                  onChange={(e) =>
-                    void updateProspectStatus(
-                      prospect.id,
-                      e.target.value as Prospect['pipeline_status'],
-                    ).then(() => load())
-                  }
+      <Panel className="mb-4 px-4 py-4">
+        <h2 className="text-sm font-semibold text-ink">Business information</h2>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt className="text-ink-muted">Phone</dt>
+            <dd className="text-ink">{prospect.phone ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Website</dt>
+            <dd className="text-ink">
+              {prospect.website ? (
+                <a
+                  href={prospect.website}
+                  className="text-blue hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  {PIPELINE_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
+                  {prospect.website}
+                </a>
+              ) : (
+                'None'
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Address</dt>
+            <dd className="text-ink">
+              {[prospect.address, prospect.city, prospect.state, prospect.zip]
+                .filter(Boolean)
+                .join(', ') || '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Industry</dt>
+            <dd className="text-ink">{prospect.industry ?? prospect.category ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Pipeline</dt>
+            <dd className="mt-1">
+              <select
+                className="input-field rounded-md"
+                value={prospect.pipeline_status}
+                onChange={(e) =>
+                  void updateProspectStatus(
+                    prospect.id,
+                    e.target.value as Prospect['pipeline_status'],
+                  ).then(() => load())
+                }
+              >
+                {PIPELINE_STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </dd>
+          </div>
+          {prospect.saved_to_crm && prospect.crm_lead_id ? (
+            <div>
+              <dt className="text-ink-muted">CRM</dt>
+              <dd>
+                <Link to="/leads" className="text-sm text-blue hover:underline">
+                  Open Leads
+                </Link>
               </dd>
             </div>
-            {prospect.saved_to_crm && prospect.crm_lead_id ? (
-              <div>
-                <dt className="text-ink-muted">CRM</dt>
-                <dd>
-                  <Link to="/leads" className="text-sm text-blue hover:underline">
-                    Open Leads
-                  </Link>
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-        </Panel>
-
-        <Panel className="px-4 py-4 lg:col-span-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold text-ink">Opportunity score</h2>
-            <Badge tone={toneForScore(prospect.opportunity_score)}>
-              {prospect.opportunity_score} · {scoreBandLabel(band)}
-            </Badge>
-          </div>
-          <p className="mt-1 text-xs text-ink-muted">
-            Rule-based score (not AI). Each line shows why points were earned or lost.
-          </p>
-          <div className="mt-4 space-y-3">
-            {(breakdown?.lines ?? []).map((line) => (
-              <div key={line.key} className="border-b border-line/70 pb-3 last:border-0">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium text-ink">{line.label}</span>
-                  <span className="text-ink-muted">
-                    {line.earned}/{line.max}
-                  </span>
-                </div>
-                <ul className="mt-1 list-inside list-disc text-xs text-ink-muted">
-                  {line.reasons.map((r) => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      <div className="mb-4 grid gap-4 lg:grid-cols-2">
-        <Panel className="px-4 py-4">
-          <h2 className="text-sm font-semibold text-ink">Problems found</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {prospect.findings.length === 0 ? (
-              <li className="text-ink-muted">No findings recorded.</li>
-            ) : (
-              prospect.findings.map((f) => (
-                <li key={f.id} className="flex gap-2">
-                  <span>
-                    {f.severity === 'critical' ? '❌' : f.severity === 'warning' ? '⚠️' : 'ℹ️'}
-                  </span>
-                  <span>
-                    <span className="text-ink-muted">{f.area}:</span> {f.message}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </Panel>
-        <Panel className="px-4 py-4">
-          <h2 className="text-sm font-semibold text-ink">Recommended services</h2>
-          <ul className="mt-3 space-y-2 text-sm text-ink">
-            {prospect.recommended_services.length === 0 ? (
-              <li className="text-ink-muted">No service recommendations yet.</li>
-            ) : (
-              prospect.recommended_services.map((s) => (
-                <li key={s}>
-                  <Badge tone="brand">{s}</Badge>
-                </li>
-              ))
-            )}
-          </ul>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-ink-muted">
-            <div>Website {prospect.website_score}</div>
-            <div>Mobile {prospect.mobile_score}</div>
-            <div>SEO {prospect.seo_score}</div>
-            <div>Performance {prospect.performance_score}</div>
-            <div>Presence {prospect.online_presence_score}</div>
-            <div>Lead gen {prospect.lead_gen_score}</div>
-          </div>
-        </Panel>
-      </div>
+          ) : null}
+        </dl>
+      </Panel>
 
       <Panel className="mb-4 px-4 py-4">
         <h2 className="text-sm font-semibold text-ink">Notes & follow-ups</h2>

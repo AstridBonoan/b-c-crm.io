@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,22 +18,7 @@ import {
   prospectSearchSchema,
   type ProspectSearchFormValues,
 } from '@/features/lead-finder/schemas'
-import { scoreBandLabel } from '@/features/lead-finder/scoring'
 import type { Prospect } from '@/features/lead-finder/types'
-
-function bandFromScore(score: number) {
-  if (score >= 80) return 'high'
-  if (score >= 60) return 'good'
-  if (score >= 40) return 'moderate'
-  return 'low'
-}
-
-function toneForScore(score: number): 'success' | 'brand' | 'neutral' | 'danger' {
-  if (score >= 80) return 'success'
-  if (score >= 60) return 'brand'
-  if (score >= 40) return 'neutral'
-  return 'danger'
-}
 
 export function LeadFinderPage() {
   const { user } = useAuth()
@@ -45,11 +30,8 @@ export function LeadFinderPage() {
   const [filters, setFilters] = useState<ProspectFilters>({
     search: '',
     industry: 'all',
-    minOpportunity: 'all',
     hasWebsite: 'all',
-    hasContactForm: 'all',
-    service: 'all',
-    sort: 'opportunity_desc',
+    sort: 'newest',
   })
 
   const {
@@ -94,7 +76,7 @@ export function LeadFinderPage() {
     try {
       const result = await runProspectSearch(values, user?.id)
       setWarning(result.warning ?? null)
-      await load({ ...filters, sort: 'opportunity_desc' })
+      await load({ ...filters, sort: 'newest' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -107,12 +89,6 @@ export function LeadFinderPage() {
     setFilters(next)
     await load(next)
   }
-
-  const services = useMemo(() => {
-    const set = new Set<string>()
-    for (const p of prospects) for (const s of p.recommended_services) set.add(s)
-    return [...set].sort()
-  }, [prospects])
 
   const exportCsv = () => {
     const csv = prospectsToCsv(prospects)
@@ -129,7 +105,7 @@ export function LeadFinderPage() {
     <div>
       <PageHeader
         title="Lead Finder"
-        description="Search local businesses, score websites with deterministic rules, and save high-opportunity prospects into the CRM. Both founders have full access."
+        description="Search local businesses and save prospects into the CRM. Both founders have full access."
         actions={
           <Button variant="secondary" onClick={exportCsv} disabled={prospects.length === 0}>
             Export CSV
@@ -140,8 +116,8 @@ export function LeadFinderPage() {
       <Panel className="mb-4 px-4 py-4">
         <h2 className="text-sm font-semibold text-ink">Prospect search</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Example: Construction companies within 25 miles of Newark, NJ. Uses public OpenStreetMap
-          data; falls back to demo prospects if the live query is empty.
+          Searches public OpenStreetMap data only — no demo or placeholder businesses. Results stay
+          within the state you enter.
         </p>
         <form className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={onSearch}>
           <div>
@@ -187,7 +163,7 @@ export function LeadFinderPage() {
           </div>
           <div className="flex items-end">
             <Button type="submit" disabled={searching} className="w-full">
-              {searching ? 'Searching & scoring…' : 'Search prospects'}
+              {searching ? 'Searching…' : 'Search prospects'}
             </Button>
           </div>
         </form>
@@ -201,20 +177,6 @@ export function LeadFinderPage() {
           placeholder="Filter by name, city, industry…"
           className="input-field rounded-md lg:max-w-sm"
         />
-        <select
-          className="input-field rounded-md lg:w-auto"
-          value={String(filters.minOpportunity)}
-          onChange={(e) =>
-            void applyFilters({
-              minOpportunity: e.target.value === 'all' ? 'all' : Number(e.target.value),
-            })
-          }
-        >
-          <option value="all">All scores</option>
-          <option value="80">High (80+)</option>
-          <option value="60">Good (60+)</option>
-          <option value="40">Moderate (40+)</option>
-        </select>
         <select
           className="input-field rounded-md lg:w-auto"
           value={filters.hasWebsite}
@@ -233,41 +195,36 @@ export function LeadFinderPage() {
             void applyFilters({ sort: e.target.value as ProspectFilters['sort'] })
           }
         >
-          <option value="opportunity_desc">Highest opportunity</option>
-          <option value="website_asc">Worst website score</option>
+          <option value="newest">Newest</option>
           <option value="name_asc">Name A–Z</option>
-        </select>
-        <select
-          className="input-field rounded-md lg:w-auto"
-          value={filters.service}
-          onChange={(e) => void applyFilters({ service: e.target.value })}
-        >
-          <option value="all">All services</option>
-          {services.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
         </select>
       </div>
 
       {warning ? (
-        <p className="mb-4 border border-line bg-surface-muted px-3 py-2 text-sm text-ink">{warning}</p>
+        <p
+          role="status"
+          className="mb-4 border border-amber-300/80 bg-amber-50 px-3 py-2 text-sm text-ink"
+        >
+          {warning}
+        </p>
       ) : null}
       {error ? (
-        <p className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p
+          role="alert"
+          className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           {error}
         </p>
       ) : null}
 
       {loading || searching ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">
-          {searching ? 'Discovering businesses and scoring…' : 'Loading prospects…'}
+          {searching ? 'Discovering businesses…' : 'Loading prospects…'}
         </Panel>
       ) : prospects.length === 0 ? (
         <EmptyState
           title="No prospects yet"
-          description="Run a search like “Construction within 25 miles of Newark, NJ” to populate Lead Finder."
+          description="Run a search to find real local businesses from OpenStreetMap. Failures and empty results show a notice above — nothing is faked."
         />
       ) : (
         <Panel className="overflow-x-auto">
@@ -276,9 +233,8 @@ export function LeadFinderPage() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Business</th>
                 <th className="px-4 py-3 font-semibold">Location</th>
-                <th className="px-4 py-3 font-semibold">Opportunity</th>
+                <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 font-semibold">Website</th>
-                <th className="px-4 py-3 font-semibold">Services</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
@@ -297,16 +253,21 @@ export function LeadFinderPage() {
                   <td className="px-4 py-3 text-ink-muted">
                     {[p.city, p.state].filter(Boolean).join(', ')}
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={toneForScore(p.opportunity_score)}>
-                      {p.opportunity_score} · {scoreBandLabel(bandFromScore(p.opportunity_score))}
-                    </Badge>
-                  </td>
+                  <td className="px-4 py-3 text-ink-muted">{p.phone ?? '—'}</td>
                   <td className="px-4 py-3 text-ink-muted">
-                    {p.has_website ? `Score ${p.website_score}` : 'No website'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-ink-muted">
-                    {p.recommended_services.slice(0, 2).join(', ') || '—'}
+                    {p.website ? (
+                      <a
+                        href={p.website}
+                        className="text-blue hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Visit
+                      </a>
+                    ) : (
+                      'None'
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={p.saved_to_crm ? 'success' : 'neutral'}>

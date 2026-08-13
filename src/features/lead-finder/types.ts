@@ -1,5 +1,3 @@
-import type { ProspectFinding } from '@/features/lead-finder/scoring'
-
 export type ProspectPipelineStatus =
   | 'new'
   | 'researching'
@@ -31,16 +29,6 @@ export type Prospect = {
   linkedin_url: string | null
   yelp_url: string | null
   has_website: boolean
-  opportunity_score: number
-  website_score: number
-  mobile_score: number
-  seo_score: number
-  performance_score: number
-  online_presence_score: number
-  lead_gen_score: number
-  score_breakdown: unknown
-  findings: ProspectFinding[]
-  recommended_services: string[]
   pipeline_status: ProspectPipelineStatus
   saved_to_crm: boolean
   crm_lead_id: string | null
@@ -48,7 +36,6 @@ export type Prospect = {
   notes: string | null
   last_contacted_at: string | null
   next_follow_up_at: string | null
-  analyzed_at: string | null
   created_by: string | null
   created_at: string
   updated_at: string
