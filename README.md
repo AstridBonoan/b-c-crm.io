@@ -1,8 +1,8 @@
 # B&C Software & Web — Internal CRM
 
-Internal CRM for **B&C Software & Web** employees. It manages leads, sales opportunities, customers, projects, tasks, and relationship history.
+Internal CRM for **B&C Software & Web** employees. It manages leads, clients, sales opportunities, projects, tasks, and relationship history.
 
-This is **not** a customer-facing portal. Customers do not log in.
+This is **not** a customer-facing portal. External clients do not log in.
 
 Live site (GitHub Pages): https://astridbonoan.github.io/b-c-crm.io/
 
@@ -146,7 +146,6 @@ feature/contacts
 feature/leads
 feature/sales-pipeline
 feature/deals
-feature/customers
 feature/projects
 feature/tasks
 feature/activities
@@ -155,15 +154,16 @@ feature/documents
 feature/search-filtering
 feature/analytics
 feature/user-roles
+chore/product-readiness
 ```
 
 Workflow:
 
 ```text
-main → feature/<name> → develop/test → pull request → main → Pages deploy
+main → feature/<name> or chore/<name> → develop/test → pull request → main → Pages deploy
 ```
 
-Do not combine unrelated features in one branch.
+Do not combine unrelated features in one branch. Use a separate chore branch for product-readiness polish so feature PRs stay clean.
 
 ---
 
