@@ -170,7 +170,7 @@ async function geocodeCity(
 
   if (!data[0]) {
     throw new Error(
-      `Could not find “${[city, stateCode].filter(Boolean).join(', ')}”. Check the city and state, then try again.`,
+      `Could not find “${[city, stateCode].filter(Boolean).join(', ')}”. Check the city/borough and state, then try again.`,
     )
   }
 
@@ -598,7 +598,7 @@ export async function discoverBusinesses(query: DiscoveryQuery): Promise<Discove
     const place = [query.city, stateCode || query.state].filter(Boolean).join(', ')
     return {
       businesses: [],
-      warning: `No businesses found in OpenStreetMap for “${query.industry}” in ${place} within ${query.radiusMiles} mi. Results must match that city and state. Try a nearby city or larger radius.`,
+      warning: `No businesses found in OpenStreetMap for “${query.industry}” in ${place} within ${query.radiusMiles} mi. Results must match that city/borough and state. Try a nearby city/borough or larger radius.`,
     }
   }
 
