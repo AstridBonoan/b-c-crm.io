@@ -207,7 +207,7 @@ Implemented for internal founder use:
 - GitHub Actions build/validate + deploy to `gh-pages`
 - B&C brand theme with light/dark toggle
 
-Deploy path: merge the current feature branch into `main` so Pages picks up the latest build.
+See `PRODUCT_READINESS.md` for the founder smoke checklist (use `chore/product-readiness` for testing).
 
 ---
 

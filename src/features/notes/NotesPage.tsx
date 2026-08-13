@@ -33,7 +33,7 @@ function relatedLabel(note: NoteWithRelations): string {
     parts.push(note.leads.service_interested || note.leads.source || 'Lead')
   }
   if (note.deals?.name) parts.push(note.deals.name)
-  if (note.customers) parts.push(`Customer (${note.customers.status})`)
+  if (note.customers) parts.push('Legacy customer link')
   if (note.projects?.name) parts.push(note.projects.name)
   return parts.length > 0 ? parts.join(' · ') : '—'
 }

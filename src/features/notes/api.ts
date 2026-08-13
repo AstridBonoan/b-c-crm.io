@@ -76,20 +76,6 @@ export async function listDealsForClient(
   return data ?? []
 }
 
-export async function listCustomersForClient(
-  clientId: string,
-): Promise<Pick<Customer, 'id' | 'status'>[]> {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('id, status')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
-
 export async function listProjectsForClient(
   clientId: string,
 ): Promise<Pick<Project, 'id' | 'name'>[]> {
@@ -130,7 +116,7 @@ function toPayload(values: NoteFormValues, userId: string | undefined) {
     contact_id: toNullableUuid(values.contact_id),
     lead_id: toNullableUuid(values.lead_id),
     deal_id: toNullableUuid(values.deal_id),
-    customer_id: toNullableUuid(values.customer_id),
+    customer_id: null,
     project_id: toNullableUuid(values.project_id),
     created_by: userId ?? null,
   }

@@ -7,7 +7,6 @@ export const noteSchema = z
     contact_id: z.string().optional(),
     lead_id: z.string().optional(),
     deal_id: z.string().optional(),
-    customer_id: z.string().optional(),
     project_id: z.string().optional(),
   })
   .superRefine((values, ctx) => {
@@ -16,7 +15,6 @@ export const noteSchema = z
       values.contact_id,
       values.lead_id,
       values.deal_id,
-      values.customer_id,
       values.project_id,
     ]
     if (!parents.some((value) => value?.trim())) {

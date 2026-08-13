@@ -30,7 +30,7 @@ function relatedLabel(doc: DocumentWithRelations): string {
   if (doc.deals?.name) return doc.deals.name
   if (doc.contacts) return `${doc.contacts.first_name} ${doc.contacts.last_name}`
   if (doc.leads) return doc.leads.service_interested || doc.leads.source || 'Lead'
-  if (doc.customers) return `Customer (${doc.customers.status})`
+  if (doc.customers) return 'Legacy customer link'
   return '—'
 }
 

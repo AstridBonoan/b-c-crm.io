@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
-import type { Activity, Client, Contact, Customer, Deal, Lead, Project, Task } from '@/types/database'
+import type { Activity, Client, Contact, Deal, Lead, Project, Task } from '@/types/database'
 import {
   listContactsForClient,
-  listCustomersForClient,
   listDealsForClient,
   listLeadsForClient,
   listProjectsForClient,
@@ -38,7 +37,6 @@ const emptyValues = (): ActivityFormValues => ({
   contact_id: '',
   lead_id: '',
   deal_id: '',
-  customer_id: '',
   project_id: '',
   task_id: '',
 })
@@ -55,7 +53,6 @@ function toFormValues(activity: Activity): ActivityFormValues {
     contact_id: activity.contact_id ?? '',
     lead_id: activity.lead_id ?? '',
     deal_id: activity.deal_id ?? '',
-    customer_id: activity.customer_id ?? '',
     project_id: activity.project_id ?? '',
     task_id: activity.task_id ?? '',
   }
@@ -81,7 +78,6 @@ export function ActivityForm({
     Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'>[]
   >([])
   const [deals, setDeals] = useState<Pick<Deal, 'id' | 'name'>[]>([])
-  const [customers, setCustomers] = useState<Pick<Customer, 'id' | 'status'>[]>([])
   const [projects, setProjects] = useState<Pick<Project, 'id' | 'name'>[]>([])
   const [tasks, setTasks] = useState<Pick<Task, 'id' | 'title'>[]>([])
   const [relationError, setRelationError] = useState<string | null>(null)
@@ -109,13 +105,11 @@ export function ActivityForm({
       setContacts([])
       setLeads([])
       setDeals([])
-      setCustomers([])
       setProjects([])
       setTasks([])
       setValue('contact_id', '')
       setValue('lead_id', '')
       setValue('deal_id', '')
-      setValue('customer_id', '')
       setValue('project_id', '')
       setValue('task_id', '')
       return
@@ -126,29 +120,21 @@ export function ActivityForm({
       listContactsForClient(clientId),
       listLeadsForClient(clientId),
       listDealsForClient(clientId),
-      listCustomersForClient(clientId),
       listProjectsForClient(clientId),
       listTasksForClient(clientId),
     ])
-      .then(([nextContacts, nextLeads, nextDeals, nextCustomers, nextProjects, nextTasks]) => {
+      .then(([nextContacts, nextLeads, nextDeals, nextProjects, nextTasks]) => {
         if (!active) return
         setContacts(nextContacts)
         setLeads(nextLeads)
         setDeals(nextDeals)
-        setCustomers(nextCustomers)
         setProjects(nextProjects)
         setTasks(nextTasks)
         setRelationError(null)
 
         const sameClient = initial?.client_id === clientId
         const keepOrClear = (
-          field:
-            | 'contact_id'
-            | 'lead_id'
-            | 'deal_id'
-            | 'customer_id'
-            | 'project_id'
-            | 'task_id',
+          field: 'contact_id' | 'lead_id' | 'deal_id' | 'project_id' | 'task_id',
           preferred: string | null | undefined,
           ids: string[],
         ) => {
@@ -175,11 +161,6 @@ export function ActivityForm({
           nextDeals.map((item) => item.id),
         )
         keepOrClear(
-          'customer_id',
-          sameClient ? initial?.customer_id : undefined,
-          nextCustomers.map((item) => item.id),
-        )
-        keepOrClear(
           'project_id',
           sameClient ? initial?.project_id : undefined,
           nextProjects.map((item) => item.id),
@@ -195,7 +176,6 @@ export function ActivityForm({
         setContacts([])
         setLeads([])
         setDeals([])
-        setCustomers([])
         setProjects([])
         setTasks([])
         setRelationError(err instanceof Error ? err.message : 'Failed to load related records')
@@ -314,24 +294,6 @@ export function ActivityForm({
             {deals.map((deal) => (
               <option key={deal.id} value={deal.id}>
                 {deal.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="customer_id" className="block text-sm font-medium text-ink">
-            Customer
-          </label>
-          <select
-            id="customer_id"
-            className="input-field mt-1 rounded-md"
-            disabled={!clientId}
-            {...register('customer_id')}
-          >
-            <option value="">None</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                Customer ({customer.status})
               </option>
             ))}
           </select>

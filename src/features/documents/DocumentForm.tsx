@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type {
   Client,
   Contact,
-  Customer,
   Deal,
   DocumentRecord,
   Lead,
@@ -12,7 +11,6 @@ import type {
 } from '@/types/database'
 import {
   listContactsForClient,
-  listCustomersForClient,
   listDealsForClient,
   listLeadsForClient,
   listProjectsForClient,
@@ -40,7 +38,6 @@ const emptyValues: UploadDocumentFormValues = {
   contact_id: '',
   lead_id: '',
   deal_id: '',
-  customer_id: '',
   project_id: '',
   fileName: '',
   fileSize: 0,
@@ -53,7 +50,6 @@ function toFormValues(doc: DocumentRecord): UploadDocumentFormValues {
     contact_id: doc.contact_id ?? '',
     lead_id: doc.lead_id ?? '',
     deal_id: doc.deal_id ?? '',
-    customer_id: doc.customer_id ?? '',
     project_id: doc.project_id ?? '',
     fileName: doc.name,
     fileSize: doc.size_bytes ?? 1,
@@ -83,7 +79,6 @@ export function DocumentForm({
     Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'>[]
   >([])
   const [deals, setDeals] = useState<Pick<Deal, 'id' | 'name'>[]>([])
-  const [customers, setCustomers] = useState<Pick<Customer, 'id' | 'status'>[]>([])
   const [projects, setProjects] = useState<Pick<Project, 'id' | 'name'>[]>([])
   const [relationError, setRelationError] = useState<string | null>(null)
 
@@ -111,12 +106,10 @@ export function DocumentForm({
       setContacts([])
       setLeads([])
       setDeals([])
-      setCustomers([])
       setProjects([])
       setValue('contact_id', '')
       setValue('lead_id', '')
       setValue('deal_id', '')
-      setValue('customer_id', '')
       setValue('project_id', '')
       return
     }
@@ -126,21 +119,19 @@ export function DocumentForm({
       listContactsForClient(clientId),
       listLeadsForClient(clientId),
       listDealsForClient(clientId),
-      listCustomersForClient(clientId),
       listProjectsForClient(clientId),
     ])
-      .then(([nextContacts, nextLeads, nextDeals, nextCustomers, nextProjects]) => {
+      .then(([nextContacts, nextLeads, nextDeals, nextProjects]) => {
         if (!active) return
         setContacts(nextContacts)
         setLeads(nextLeads)
         setDeals(nextDeals)
-        setCustomers(nextCustomers)
         setProjects(nextProjects)
         setRelationError(null)
 
         const sameClient = initial?.client_id === clientId
         const keepOrClear = (
-          field: 'contact_id' | 'lead_id' | 'deal_id' | 'customer_id' | 'project_id',
+          field: 'contact_id' | 'lead_id' | 'deal_id' | 'project_id',
           preferred: string | null | undefined,
           ids: string[],
         ) => {
@@ -167,11 +158,6 @@ export function DocumentForm({
           nextDeals.map((item) => item.id),
         )
         keepOrClear(
-          'customer_id',
-          sameClient ? initial?.customer_id : undefined,
-          nextCustomers.map((item) => item.id),
-        )
-        keepOrClear(
           'project_id',
           sameClient ? initial?.project_id : undefined,
           nextProjects.map((item) => item.id),
@@ -182,7 +168,6 @@ export function DocumentForm({
         setContacts([])
         setLeads([])
         setDeals([])
-        setCustomers([])
         setProjects([])
         setRelationError(err instanceof Error ? err.message : 'Failed to load related records')
       })
@@ -199,7 +184,6 @@ export function DocumentForm({
       contact_id: values.contact_id,
       lead_id: values.lead_id,
       deal_id: values.deal_id,
-      customer_id: values.customer_id,
       project_id: values.project_id,
     }
 
@@ -322,24 +306,6 @@ export function DocumentForm({
           </select>
         </div>
         <div>
-          <label htmlFor="customer_id" className="block text-sm font-medium text-ink">
-            Customer
-          </label>
-          <select
-            id="customer_id"
-            className="input-field mt-1 rounded-md"
-            disabled={!clientId}
-            {...register('customer_id')}
-          >
-            <option value="">None</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                Customer ({customer.status})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sm:col-span-2">
           <label htmlFor="project_id" className="block text-sm font-medium text-ink">
             Project
           </label>
