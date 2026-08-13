@@ -199,11 +199,23 @@ export function DocumentsPage() {
           Loading documents…
         </Panel>
       ) : documents.length === 0 ? (
-        <EmptyState
-          title="No documents yet"
-          description="Upload proposals, contracts, or briefs and link them to a client or project."
-          action={<Button onClick={openCreate}>Upload document</Button>}
-        />
+        search.trim() ? (
+          <EmptyState
+            title="No matching documents"
+            description="Try clearing search to see all documents."
+            action={
+              <Button variant="secondary" onClick={() => setSearch('')}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No documents yet"
+            description="Upload proposals, contracts, or briefs and link them to a client or project."
+            action={<Button onClick={openCreate}>Upload document</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

@@ -91,6 +91,7 @@ function toPayload(values: ProjectFormValues, userId: string | undefined) {
     status,
     progress,
     notes: toNullable(values.notes),
+    assigned_to: userId ?? null,
     created_by: userId ?? null,
   }
 }

@@ -55,7 +55,7 @@ function defaultsFromLead(lead: LeadWithRelations): ClientFormValues {
   return {
     client_type: 'organization',
     client_status: 'active',
-    name: lead.service_interested || lead.source || '',
+    name: '',
     first_name: '',
     last_name: '',
     industry: '',
@@ -125,8 +125,9 @@ export function ConvertLeadForm({
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <p className="text-sm text-ink-muted">
-        Create the client from this lead. We’ll mark the lead converted, link the client, and create
-        a primary contact when name/email/phone is provided.
+        Create the client from this lead. Enter the real client name (not the service). We’ll mark
+        the lead converted, link the client, and create a primary contact when name/email/phone is
+        provided.
       </p>
 
       <fieldset className="space-y-2">

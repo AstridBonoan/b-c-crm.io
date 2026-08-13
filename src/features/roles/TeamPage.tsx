@@ -167,7 +167,7 @@ export function TeamPage() {
       ) : members.length === 0 ? (
         <EmptyState
           title="No profiles yet"
-          description="Create accounts for both founders, then set names and roles here."
+          description="Invite founders in Supabase Auth, add their emails to employee_allowlist, then refresh. Edit names and roles here."
         />
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">

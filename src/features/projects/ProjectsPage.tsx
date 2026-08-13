@@ -209,26 +209,44 @@ export function ProjectsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading projects…</Panel>
       ) : projects.length === 0 ? (
-        <EmptyState
-          title="No projects yet"
-          description={
-            clients.length === 0
-              ? 'Create a client first, then add projects for their work.'
-              : 'Add a project to track delivery from planning through completion.'
-          }
-          action={
-            clients.length === 0 ? (
-              <Link
-                to="/clients"
-                className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+        search.trim() || status !== 'all' ? (
+          <EmptyState
+            title="No matching projects"
+            description="Try clearing search or filters to see all projects."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStatus('all')
+                }}
               >
-                Go to Clients
-              </Link>
-            ) : (
-              <Button onClick={openCreate}>Add project</Button>
-            )
-          }
-        />
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No projects yet"
+            description={
+              clients.length === 0
+                ? 'Create a client first, then add projects for their work.'
+                : 'Add a project to track delivery from planning through completion.'
+            }
+            action={
+              clients.length === 0 ? (
+                <Link
+                  to="/clients"
+                  className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+                >
+                  Go to Clients
+                </Link>
+              ) : (
+                <Button onClick={openCreate}>Add project</Button>
+              )
+            }
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
