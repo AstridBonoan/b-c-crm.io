@@ -149,7 +149,7 @@ export function LeadFinderPage() {
       <Panel className="mb-4 px-4 py-4">
         <h2 className="text-sm font-semibold text-ink">Prospect search</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Live OpenStreetMap results only. Businesses must match the city and state you enter —
+          Live OpenStreetMap results only. Businesses must match the city/borough and state you enter —
           neighboring towns and neighborhoods are excluded.
         </p>
         <form className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={onSearch}>
@@ -165,7 +165,7 @@ export function LeadFinderPage() {
             <input className="input-field mt-1 rounded-md" {...register('category')} />
           </div>
           <div>
-            <label className="text-xs font-medium text-ink-muted">City</label>
+            <label className="text-xs font-medium text-ink-muted">City/Borough</label>
             <input className="input-field mt-1 rounded-md" {...register('city')} />
           </div>
           <div>
@@ -207,7 +207,7 @@ export function LeadFinderPage() {
           type="search"
           value={filters.search}
           onChange={(e) => void applyFilters({ search: e.target.value })}
-          placeholder="Filter by name, city, industry…"
+          placeholder="Filter by name, city/borough, industry…"
           className="input-field rounded-md lg:max-w-sm"
         />
         <select
