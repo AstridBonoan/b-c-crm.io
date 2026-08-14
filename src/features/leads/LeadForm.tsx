@@ -20,6 +20,7 @@ type LeadFormProps = {
 }
 
 const emptyValues: LeadFormValues = {
+  company_name: '',
   source: '',
   service_interested: '',
   status: 'new',
@@ -46,6 +47,7 @@ function toFormValues(lead: Lead): LeadFormValues {
         : 'new'
 
   return {
+    company_name: lead.company_name ?? '',
     source: lead.source ?? '',
     service_interested: lead.service_interested ?? '',
     status,
@@ -115,6 +117,13 @@ export function LeadForm({
           Status is <strong>Converted</strong>. Edit the client record for relationship details.
         </p>
       )}
+
+      <Field
+        id="company_name"
+        label="Company"
+        error={errors.company_name?.message}
+        {...register('company_name')}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="source" label="Lead source" error={errors.source?.message} {...register('source')} />

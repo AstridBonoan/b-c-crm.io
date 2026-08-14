@@ -67,7 +67,7 @@ export async function listLeads(filters: LeadFilters): Promise<LeadWithRelations
   const search = filters.search.trim()
   if (search) {
     query = query.or(
-      `source.ilike.%${search}%,service_interested.ilike.%${search}%,notes.ilike.%${search}%`,
+      `company_name.ilike.%${search}%,source.ilike.%${search}%,service_interested.ilike.%${search}%,notes.ilike.%${search}%`,
     )
   }
 
@@ -84,6 +84,7 @@ function toPayload(
   return {
     client_id: links?.client_id ?? null,
     contact_id: links?.contact_id ?? null,
+    company_name: toNullable(values.company_name),
     source: toNullable(values.source),
     service_interested: toNullable(values.service_interested),
     status: values.status,
@@ -122,6 +123,7 @@ export async function updateLead(id: string, values: LeadFormValues, existing?: 
     .update({
       client_id: payload.client_id,
       contact_id: payload.contact_id,
+      company_name: payload.company_name,
       source: payload.source,
       service_interested: payload.service_interested,
       status: existing?.status === 'converted' ? 'converted' : payload.status,

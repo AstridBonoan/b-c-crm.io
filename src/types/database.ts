@@ -57,6 +57,7 @@ export type Lead = {
   id: string
   client_id: string | null
   contact_id: string | null
+  company_name: string | null
   source: string | null
   service_interested: string | null
   status: LeadStatus
