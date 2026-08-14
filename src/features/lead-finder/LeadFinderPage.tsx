@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
-  getLatestProspectSearch,
   getProspectSearch,
   listProspects,
   prospectGoogleSearchUrl,
@@ -21,6 +20,11 @@ import {
   type ProspectSearchFormValues,
 } from '@/features/lead-finder/schemas'
 import type { Prospect } from '@/features/lead-finder/types'
+import {
+  consumeLeadFinderFreshLogin,
+  readLeadFinderSearchId,
+  writeLeadFinderSearchId,
+} from '@/features/lead-finder/session'
 
 export function LeadFinderPage() {
   const { user } = useAuth()
@@ -114,25 +118,18 @@ export function LeadFinderPage() {
   }
 
   useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      if (searchFromUrl) {
-        await restoreSearch(searchFromUrl)
-        return
-      }
-      try {
-        const latest = await getLatestProspectSearch()
-        if (cancelled || !latest) return
-        setSearchParams({ s: latest.id }, { replace: true })
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to restore search')
-        }
-      }
+    if (consumeLeadFinderFreshLogin()) {
+      setSearchParams({}, { replace: true })
+      return
     }
-    void run()
-    return () => {
-      cancelled = true
+    if (searchFromUrl) {
+      writeLeadFinderSearchId(searchFromUrl)
+      void restoreSearch(searchFromUrl)
+      return
+    }
+    const stored = readLeadFinderSearchId()
+    if (stored) {
+      setSearchParams({ s: stored }, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchFromUrl])
@@ -150,6 +147,7 @@ export function LeadFinderPage() {
       const next = { ...filters, sort: 'newest' as const, searchId: result.search.id }
       setFilters(next)
       setProspects(result.prospects)
+      writeLeadFinderSearchId(result.search.id)
       setSearchParams({ s: result.search.id }, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
