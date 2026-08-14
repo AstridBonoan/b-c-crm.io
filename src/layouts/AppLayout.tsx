@@ -52,9 +52,9 @@ export function AppLayout() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="relative flex h-[4.75rem] items-center justify-center border-b border-white/10 px-3">
-          <div className="flex min-w-0 flex-col items-center text-center">
-            <BrandLogo variant="dark" className="h-12 w-auto max-w-full object-contain object-center" />
+        <div className="relative flex h-[4.75rem] items-center border-b border-white/10 px-6">
+          <div className="flex min-w-0 flex-1 flex-col items-start text-left">
+            <BrandLogo variant="dark" className="h-12 w-auto max-w-full object-contain object-left" />
             <p className="mt-1 text-[10px] tracking-[0.16em] text-teal-bright uppercase">
               Internal CRM
             </p>
