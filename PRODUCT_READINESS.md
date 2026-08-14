@@ -1,98 +1,57 @@
 # Product readiness checklist
 
-**You are here:** branch `chore/product-readiness` (polish + hardening).  
-**Already merged:** [PR #27](https://github.com/AstridBonoan/b-c-crm.io/pull/27) (`feature/simplify-lead-to-client` → `main`) — core CRM + allowlist security code.
+**Where you are:** `chore/product-ready-polish` → open PR [#29](https://github.com/AstridBonoan/b-c-crm.io/pull/29)  
+**Already on `main`:** [#27](https://github.com/AstridBonoan/b-c-crm.io/pull/27) (CRM + allowlist) · [#28](https://github.com/AstridBonoan/b-c-crm.io/pull/28) (first readiness pass)
 
-Use this file as your punch list. Check boxes only when **you** verify them.
+Check a box only when **you** finish that step.
 
 ---
 
-## Still needs to be done (your action)
+## Still needs to be done
 
-These are **not** finished until you do them in Supabase / the browser / GitHub.
-
-### 1. Supabase (required for secure access)
-- [ ] Apply any missing migrations in order — see `supabase/MIGRATIONS.md`  
-  Especially: `20260813160000_employee_allowlist.sql` if you haven’t run it yet
-- [ ] Confirm founders:
-
-```sql
-select email, is_active, role from public.profiles order by created_at;
-select * from public.employee_allowlist;
-```
-
-- [ ] If you or Charlie are missing from the allowlist, insert lowercase emails:
-
-```sql
-insert into public.employee_allowlist (email, note) values
-  ('YOUR_EMAIL@example.com', 'Founder & CTO'),
-  ('CHARLIE_EMAIL@example.com', 'Co-Founder & CMO')
-on conflict (email) do nothing;
-
-update public.profiles
-set is_active = true
-where lower(email) in ('your_email@example.com', 'charlie_email@example.com');
-```
-
-- [ ] Supabase → **Authentication → Providers → Email** → turn **off** “Enable sign ups”
-- [ ] Quick security check: a non-allowlisted email cannot use the CRM
-
-### 2. Smoke-test the live / local app
-Do this after migrations. Prefer testing on `chore/product-readiness` locally (`npm run dev`) so you pick up the latest polish.
+### 1. Smoke-test the app
+Run locally on this branch (`npm run dev`) or on Pages after merge.
 
 - [ ] Sign in as **you (CTO)** and as **Charlie (CMO)**
-- [ ] Create a lead → **Convert** → lands on Active clients; contact appears when name/email/phone was filled
-- [ ] Add or edit a contact under that client
-- [ ] Create a deal and move it on Pipeline
-- [ ] Create a project on the client
-- [ ] Log an activity, add a note, create a task, upload a document
-- [ ] Open Dashboard, Search, Analytics, Team (allowlist emails visible)
-- [ ] Confirm filtered empty lists say “No matching…” (not “No … yet”)
-- [ ] Open a tall **Edit lead** modal — centered, not clipped
-- [ ] Confirm unauthorized/inactive login is blocked with a clear message
+- [ ] Create lead → **Convert** (type a real client name) → Active clients; contact created when details filled
+- [ ] Contact, deal/pipeline, project, task, activity, note, document all work
+- [ ] Create a project → it shows under your assignment / Team partner visibility
+- [ ] Dashboard, Search, Analytics, Team (allowlist emails) load
+- [ ] Filters/search with no hits → “No matching…” + Clear filters
+- [ ] Tall Edit lead modal is centered (not clipped)
+- [ ] Unauthorized / inactive login shows a clear message
 
-### 3. Ship the readiness polish to production
-PR #27 is already on `main`. This branch still has **extra** readiness commits that are **not** on `main` yet.
-
-- [ ] Open a PR: `chore/product-readiness` → `main` (or ask the agent to)
-- [ ] Merge it after smoke tests pass
+### 2. Ship PR #29
+- [ ] Merge [#29](https://github.com/AstridBonoan/b-c-crm.io/pull/29) into `main` (after smoke tests)
 - [ ] Confirm GitHub Actions deployed to `gh-pages`
 - [ ] Spot-check https://astridbonoan.github.io/b-c-crm.io/
 
 ---
 
-## Already done in code (no action unless something regresses)
+## Already done (no action)
 
-| Area | Status |
+| Item | Notes |
 | --- | --- |
-| Lead → Convert → Client workflow | Done |
-| Clients status (`prospect` / `active` / `inactive`) | Done |
-| Sign-in only (no public Create account UI) | Done |
-| Employee allowlist + inactive blocked (app + RLS) | Done (needs migration applied) |
-| Convert creates contact + assigns lead + navigates to clients | Done (on this branch) |
-| Customer module removed from nav/UI pickers | Done |
-| Team page shows allowlist (soft-fails if table missing) | Done (on this branch) |
-| Modal centering / portal fix | Done |
-| Filtered empty states (leads/clients) | Done (on this branch) |
-| Auth message for unauthorized sessions | Done (on this branch) |
+| Allowlist migration applied | Done |
+| Email sign-ups disabled in Supabase | Done |
+| Full CRM modules + lead → client convert | On `main` via #27 |
+| Sign-in only + employee allowlist (app + DB) | Done |
+| Modal centering / portal | On `main` |
+| Customer pickers removed | On `main` |
+| Convert creates contact + navigates to clients | On `main` via #28 |
+| Filtered empty states (leads/clients + other lists) | In #29 (lists) / already on main for leads/clients |
+| Projects `assigned_to` on create | In #29 |
+| Convert form doesn’t prefill org name from service | In #29 |
+| Team empty copy = invite / allowlist | In #29 |
 | Lint + typecheck | Passing on this branch |
 
 ---
 
-## Branch rules
+## Suggested order
 
-| Branch | Purpose | Status |
-| --- | --- | --- |
-| `main` | Production source | Has PR #27; **missing** later readiness commits until you merge this branch |
-| `feature/simplify-lead-to-client` | Original ship PR | Merged via #27 — leave alone |
-| `chore/product-readiness` | Testing + polish | **Use this** until readiness PR merges |
+1. ~~Allowlist migration + disable Email sign-ups~~ **Done**  
+2. Smoke-test  
+3. Merge PR #29  
+4. Check live site  
 
----
-
-## Suggested order today
-
-1. Run allowlist migration + disable Email sign-ups  
-2. Confirm you + Charlie in `profiles` / `employee_allowlist`  
-3. Smoke-test the path above  
-4. PR + merge `chore/product-readiness` → `main`  
-5. Check the live Pages site
+When every box in **Still needs to be done** is checked, treat the CRM as ready for daily founder use.

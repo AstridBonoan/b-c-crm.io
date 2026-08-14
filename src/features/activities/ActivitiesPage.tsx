@@ -205,11 +205,29 @@ export function ActivitiesPage() {
           Loading activities…
         </Panel>
       ) : activities.length === 0 ? (
-        <EmptyState
-          title="No activities yet"
-          description="Log calls, emails, meetings, and demos so the team has a shared history."
-          action={<Button onClick={openCreate}>Log activity</Button>}
-        />
+        search.trim() || type !== 'all' ? (
+          <EmptyState
+            title="No matching activities"
+            description="Try clearing search or filters to see all activities."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setType('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No activities yet"
+            description="Log calls, emails, meetings, and demos so the team has a shared history."
+            action={<Button onClick={openCreate}>Log activity</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

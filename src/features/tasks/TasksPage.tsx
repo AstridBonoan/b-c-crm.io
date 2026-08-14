@@ -219,11 +219,30 @@ export function TasksPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading tasks…</Panel>
       ) : tasks.length === 0 ? (
-        <EmptyState
-          title="No tasks yet"
-          description="Create follow-ups like send proposal, schedule meeting, or check project progress."
-          action={<Button onClick={openCreate}>Add task</Button>}
-        />
+        search.trim() || status !== 'all' || priority !== 'all' ? (
+          <EmptyState
+            title="No matching tasks"
+            description="Try clearing search or filters to see all tasks."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStatus('all')
+                  setPriority('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No tasks yet"
+            description="Create follow-ups like send proposal, schedule meeting, or check project progress."
+            action={<Button onClick={openCreate}>Add task</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

@@ -61,8 +61,8 @@ export function AppLayout() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-[4.75rem] items-center justify-between border-b border-white/10 px-3">
-          <div className="min-w-0 flex-1 pr-2">
+        <div className="relative flex h-[4.75rem] items-center border-b border-white/10 px-6">
+          <div className="flex min-w-0 flex-1 flex-col items-start text-left">
             <BrandLogo variant="dark" className="h-12 w-auto max-w-full object-contain object-left" />
             <p className="mt-1 text-[10px] tracking-[0.16em] text-teal-bright uppercase">
               Internal CRM
@@ -70,7 +70,7 @@ export function AppLayout() {
           </div>
           <button
             type="button"
-            className="shrink-0 p-1 text-sidebar-muted lg:hidden"
+            className="absolute top-1/2 right-3 shrink-0 -translate-y-1/2 p-1 text-sidebar-muted lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           >

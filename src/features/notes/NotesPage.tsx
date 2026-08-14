@@ -174,11 +174,23 @@ export function NotesPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading notes…</Panel>
       ) : notes.length === 0 ? (
-        <EmptyState
-          title="No notes yet"
-          description="Capture context the team should remember — preferences, next steps, or caveats."
-          action={<Button onClick={openCreate}>Add note</Button>}
-        />
+        search.trim() ? (
+          <EmptyState
+            title="No matching notes"
+            description="Try clearing search to see all notes."
+            action={
+              <Button variant="secondary" onClick={() => setSearch('')}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No notes yet"
+            description="Capture context the team should remember — preferences, next steps, or caveats."
+            action={<Button onClick={openCreate}>Add note</Button>}
+          />
+        )
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (
