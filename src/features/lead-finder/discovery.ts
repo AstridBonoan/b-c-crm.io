@@ -2,7 +2,6 @@
 
 export type DiscoveryQuery = {
   industry: string
-  category?: string
   city: string
   state: string
   zip?: string
@@ -14,7 +13,6 @@ export type DiscoveredBusiness = {
   externalId: string
   businessName: string
   industry: string
-  category: string
   address: string | null
   city: string
   state: string
@@ -606,7 +604,6 @@ function mapElement(
     externalId: `osm-${el.type}-${el.id}`,
     businessName: name,
     industry: query.industry,
-    category: query.category || tags.craft || tags.office || tags.shop || query.industry,
     address:
       [place?.houseNumber, place?.road].filter(Boolean).join(' ') ||
       [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') ||
@@ -626,7 +623,7 @@ export async function discoverBusinesses(query: DiscoveryQuery): Promise<Discove
   const center = await geocodeCity(query.city, query.state, query.zip)
 
   const radiusMeters = Math.min(Math.max(query.radiusMiles, 1), 50) * 1609.34
-  const tags = tagsForIndustry(query.industry || query.category || 'default')
+  const tags = tagsForIndustry(query.industry || 'default')
   const body = buildOverpassQuery(center, radiusMeters, tags, stateCode)
 
   let res: Response

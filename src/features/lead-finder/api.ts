@@ -112,7 +112,6 @@ export async function runProspectSearch(
 
   const discoveryQuery: DiscoveryQuery = {
     industry: values.industry,
-    category: values.category,
     city: values.city,
     state: values.state.toUpperCase(),
     zip: values.zip,
@@ -127,7 +126,6 @@ export async function runProspectSearch(
     .insert({
       query_label: label,
       industry: values.industry,
-      category: values.category || null,
       city: values.city,
       state: values.state.toUpperCase(),
       zip: values.zip || null,
@@ -149,7 +147,6 @@ export async function runProspectSearch(
     external_id: biz.externalId,
     business_name: biz.businessName,
     industry: biz.industry,
-    category: biz.category,
     address: biz.address,
     city: biz.city,
     state: biz.state,

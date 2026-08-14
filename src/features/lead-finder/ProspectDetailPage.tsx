@@ -161,7 +161,7 @@ export function ProspectDetailPage() {
           </div>
           <div>
             <dt className="text-ink-muted">Industry</dt>
-            <dd className="text-ink">{prospect.industry ?? prospect.category ?? '—'}</dd>
+            <dd className="text-ink">{prospect.industry ?? '—'}</dd>
           </div>
           {prospect.saved_to_crm && prospect.crm_lead_id ? (
             <div>

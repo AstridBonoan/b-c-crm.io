@@ -6,7 +6,7 @@ Roles are soft labels only: growth work often sits with the CMO, but both founde
 
 ## Phase 1 (this branch)
 
-- Prospect search (industry, city, state, ZIP, radius, website filter)
+- Prospect search (industry, city/borough, state, ZIP, radius, website filter)
 - Discovery via OpenStreetMap Overpass (errors/empty results surface as warnings — no demo data)
 - Prospect list filters/sort + CSV export
 - Prospect detail (contact info, notes)
@@ -15,7 +15,7 @@ Roles are soft labels only: growth work often sits with the CMO, but both founde
 ## Apply in Supabase
 
 1. Run `supabase/migrations/20260813170000_lead_finder.sql`
-2. If you already applied an earlier Lead Finder migration that included scoring columns, also run `supabase/migrations/20260813180000_remove_prospect_scoring.sql`
+2. If you already applied an earlier Lead Finder migration, also run `20260813180000_remove_prospect_scoring.sql` and `20260813190000_remove_prospect_category.sql`
 
 ## Workflow
 

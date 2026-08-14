@@ -14,7 +14,6 @@ export type Prospect = {
   external_id: string | null
   business_name: string
   industry: string | null
-  category: string | null
   address: string | null
   city: string | null
   state: string | null
@@ -45,7 +44,6 @@ export type ProspectSearch = {
   id: string
   query_label: string
   industry: string | null
-  category: string | null
   city: string | null
   state: string | null
   zip: string | null

@@ -45,7 +45,6 @@ export function LeadFinderPage() {
     resolver: zodResolver(prospectSearchSchema),
     defaultValues: {
       industry: '',
-      category: '',
       city: '',
       state: '',
       zip: '',
@@ -152,10 +151,6 @@ export function LeadFinderPage() {
             {errors.industry ? (
               <p className="mt-1 text-xs text-danger">{errors.industry.message}</p>
             ) : null}
-          </div>
-          <div>
-            <label className="text-xs font-medium text-ink-muted">Category</label>
-            <input className="input-field mt-1 rounded-md" {...register('category')} />
           </div>
           <div>
             <label className="text-xs font-medium text-ink-muted">City/Borough</label>
@@ -280,7 +275,7 @@ export function LeadFinderPage() {
                     <Link to={`/lead-finder/${p.id}`} className="font-medium text-ink hover:underline">
                       {p.business_name}
                     </Link>
-                    <p className="text-xs text-ink-muted">{p.industry ?? p.category}</p>
+                    <p className="text-xs text-ink-muted">{p.industry}</p>
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
                     {[p.city, p.state].filter(Boolean).join(', ')}
