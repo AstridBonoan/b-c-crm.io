@@ -12,6 +12,7 @@ Apply these in the Supabase SQL editor **in order** (or with the Supabase CLI).
 | `20260813160000_employee_allowlist.sql` | Email allowlist; lock active access |
 | `20260813170000_lead_finder.sql` | Lead Finder prospects, lists, notes |
 | `20260813180000_remove_prospect_scoring.sql` | Drop scoring/audit columns if an earlier Lead Finder revision was applied |
+| `20260813190000_remove_prospect_category.sql` | Drop unused category columns |
 
 After `employee_allowlist`:
 

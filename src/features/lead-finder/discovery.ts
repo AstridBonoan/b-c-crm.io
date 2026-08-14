@@ -13,7 +13,6 @@ export type DiscoveredBusiness = {
   externalId: string
   businessName: string
   industry: string
-  category: string
   address: string | null
   city: string
   state: string
@@ -605,7 +604,6 @@ function mapElement(
     externalId: `osm-${el.type}-${el.id}`,
     businessName: name,
     industry: query.industry,
-    category: tags.craft || tags.office || tags.shop || query.industry,
     address:
       [place?.houseNumber, place?.road].filter(Boolean).join(' ') ||
       [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ') ||
