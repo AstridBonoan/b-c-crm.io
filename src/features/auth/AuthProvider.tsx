@@ -8,6 +8,7 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { tryGetSupabaseClient } from '@/lib/supabase'
+import { markLeadFinderFreshLogin } from '@/features/lead-finder/session'
 import type { Profile } from '@/types/database'
 import { AuthContext, type AuthContextValue } from '@/features/auth/auth-context'
 
@@ -137,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      markLeadFinderFreshLogin()
       return { error: null }
     },
     [loadProfile],
@@ -146,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = tryGetSupabaseClient()
     if (!supabase) return
     await supabase.auth.signOut()
+    markLeadFinderFreshLogin()
     setSession(null)
     setProfile(null)
     setProfileReady(true)
