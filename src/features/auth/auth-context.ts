@@ -7,6 +7,7 @@ export type AuthContextValue = {
   user: User | null
   profile: Profile | null
   loading: boolean
+  profileReady: boolean
   configured: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>

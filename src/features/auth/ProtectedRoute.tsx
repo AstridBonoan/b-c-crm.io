@@ -4,15 +4,15 @@ import { useAuth } from '@/features/auth/useAuth'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
 
 export function ProtectedRoute() {
-  const { user, profile, loading, signOut } = useAuth()
+  const { user, profile, loading, profileReady, signOut } = useAuth()
 
   useEffect(() => {
-    if (!loading && user && profile && !profile.is_active) {
+    if (!loading && profileReady && user && profile && !profile.is_active) {
       void signOut()
     }
-  }, [loading, user, profile, signOut])
+  }, [loading, profileReady, user, profile, signOut])
 
-  if (loading) {
+  if (loading || (user && !profileReady)) {
     return <LoadingScreen label="Checking session…" />
   }
 
