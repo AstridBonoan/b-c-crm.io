@@ -56,7 +56,6 @@ function defaultsFromLead(lead: LeadWithRelations): ClientFormValues {
     client_type: 'organization',
     client_status: 'active',
     name: lead.company_name || lead.service_interested || lead.source || '',
-    name: '',
     first_name: '',
     last_name: '',
     industry: lead.service_interested ?? '',
