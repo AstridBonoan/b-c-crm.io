@@ -22,14 +22,15 @@ export function ProspectDetailPage() {
   const [notes, setNotes] = useState<ProspectNote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [noteBody, setNoteBody] = useState('')
   const [followUp, setFollowUp] = useState('')
   const [crmNotes, setCrmNotes] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!id) return
-    setLoading(true)
+    if (!opts?.silent) setLoading(true)
     setError(null)
     try {
       const [p, n] = await Promise.all([getProspect(id), listProspectNotes(id)])
@@ -40,7 +41,7 @@ export function ProspectDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prospect')
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
   }, [id])
 
@@ -70,9 +71,18 @@ export function ProspectDetailPage() {
   const onSaveCrm = async () => {
     setBusy(true)
     setError(null)
+    setNotice(null)
     try {
-      await saveProspectToCrm(prospect, user?.id)
-      await load()
+      const result = await saveProspectToCrm(prospect, user?.id)
+      await load({ silent: true })
+      if (result.status === 'already_saved') {
+        setNotice(
+          result.where === 'leads'
+            ? 'Already saved in Leads.'
+            : 'Already saved in Clients.',
+        )
+        return
+      }
       navigate(`/leads`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save to CRM')
@@ -112,13 +122,18 @@ export function ProspectDetailPage() {
             >
               Back
             </Button>
-            <Button onClick={() => void onSaveCrm()} disabled={busy || prospect.saved_to_crm}>
-              {prospect.saved_to_crm ? 'Saved to CRM' : busy ? 'Saving…' : 'Save lead to CRM'}
+            <Button onClick={() => void onSaveCrm()} disabled={busy}>
+              {busy ? 'Saving…' : prospect.saved_to_crm ? 'Saved to CRM' : 'Save lead to CRM'}
             </Button>
           </div>
         }
       />
 
+      {notice ? (
+        <p className="mb-4 border border-amber-300/80 bg-amber-50 px-3 py-2 text-sm text-ink">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}
