@@ -203,7 +203,7 @@ export function PipelinePage() {
     <div>
       <PageHeader
         title="Sales Pipeline"
-        description="Move opportunities from first interest through Interested, proposal, and close. Winning a deal linked to a client creates a customer and a project."
+        description="Deal stages live only on this board. Outreach on Leads does not move these cards. Winning a deal linked to a client marks them active and can start a project."
         actions={<Button onClick={() => openCreate('new_lead')}>Add deal</Button>}
       />
 
@@ -218,7 +218,7 @@ export function PipelinePage() {
           value={String(deals.filter((deal) => isOpenStage(deal.stage)).length)}
         />
         <Metric label="Won" value={formatMoney(wonValue)} />
-        <Metric label="Lost" value={formatMoney(lostValue)} />
+        <Metric label="Closed lost" value={formatMoney(lostValue)} />
         <Metric
           label="Overdue follow-ups"
           value={String(overdueCount)}

@@ -77,7 +77,7 @@ function LeadTable({
             <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
               <tr>
                 <th className="px-4 py-3 font-semibold">Lead</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Outreach</th>
                 <th className="px-4 py-3 font-semibold">Source</th>
                 <th className="px-4 py-3 font-semibold">Service</th>
                 <th className="px-4 py-3 font-semibold">Est. value</th>
@@ -110,7 +110,7 @@ function LeadTable({
                     <div className="flex flex-wrap items-center gap-2">
                       {lead.status !== 'converted' ? (
                         <Button variant="secondary" size="sm" onClick={() => onConvert(lead)}>
-                          Convert
+                          Make client
                         </Button>
                       ) : null}
                       {lead.status !== 'lost' ? (
@@ -120,7 +120,7 @@ function LeadTable({
                           disabled={pipelineBusyId === lead.id}
                           onClick={() => onToPipeline(lead)}
                         >
-                          {pipelineBusyId === lead.id ? 'Sending…' : 'To pipeline'}
+                          {pipelineBusyId === lead.id ? 'Adding…' : 'Add opportunity'}
                         </Button>
                       ) : null}
                       <Button variant="secondary" size="sm" onClick={() => onEdit(lead)}>
@@ -293,7 +293,7 @@ export function LeadsPage() {
     <div>
       <PageHeader
         title="Leads"
-        description="Capture interest, send a lead into the pipeline as a deal, or convert them into a client."
+        description="Inbox for outreach. Outreach status stays here. Add opportunity puts them on the sales board. Make client creates the company in Clients."
         actions={<Button onClick={openCreate}>Add lead</Button>}
       />
 
@@ -329,7 +329,7 @@ export function LeadsPage() {
         ) : (
           <EmptyState
             title="No leads yet"
-            description="Capture inbound interest here, then send a lead to the pipeline or convert them into a client."
+            description="Capture inbound interest here. Add an opportunity when you start selling, or make them a client when they sign on."
             action={<Button onClick={openCreate}>Add lead</Button>}
           />
         )
@@ -337,13 +337,13 @@ export function LeadsPage() {
         <>
           <LeadTable title="All leads" leads={leads} showTrash {...tableProps} />
           {contactedLeads.length > 0 ? (
-            <LeadTable title="Contacted" leads={contactedLeads} showTrash {...tableProps} />
+            <LeadTable title="Reached out" leads={contactedLeads} showTrash {...tableProps} />
           ) : null}
           {followingUpLeads.length > 0 ? (
-            <LeadTable title="Following Up" leads={followingUpLeads} showTrash {...tableProps} />
+            <LeadTable title="Following up" leads={followingUpLeads} showTrash {...tableProps} />
           ) : null}
           {lostLeads.length > 0 ? (
-            <LeadTable title="Lost" leads={lostLeads} showTrash {...tableProps} />
+            <LeadTable title="Not pursuing" leads={lostLeads} showTrash {...tableProps} />
           ) : null}
         </>
       )}
@@ -377,7 +377,7 @@ export function LeadsPage() {
 
       <Modal
         open={Boolean(converting)}
-        title="Convert lead to client"
+        title="Make this lead a client"
         onClose={() => {
           if (!convertBusy) {
             setConverting(null)

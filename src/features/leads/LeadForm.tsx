@@ -88,21 +88,22 @@ export function LeadForm({
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <p className="text-sm text-ink-muted">
-        Capture the interest here. When they’re ready, use <strong>Convert</strong> to turn this
-        lead into a client.
+        Outreach status is for this inbox only. It does not move the sales pipeline. Use{' '}
+        <strong>Add opportunity</strong> to put them on the board, and <strong>Make client</strong>{' '}
+        when they become a company in Clients.
       </p>
 
       {linkedClientName ? (
         <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">
           Linked client: <span className="font-semibold">{linkedClientName}</span>
-          {isConverted ? ' · Already converted' : null}
+          {isConverted ? ' · Already a client' : null}
         </p>
       ) : null}
 
       {!isConverted ? (
         <div>
           <label htmlFor="status" className="block text-sm font-medium text-ink">
-            Status
+            Outreach status
           </label>
           <select id="status" className="input-field mt-1 rounded-md" {...register('status')}>
             {LEAD_FORM_STATUSES.map((status) => (
@@ -114,7 +115,8 @@ export function LeadForm({
         </div>
       ) : (
         <p className="text-sm text-ink-muted">
-          Status is <strong>Converted</strong>. Edit the client record for relationship details.
+          Outreach status is <strong>Became client</strong>. Edit the client record for relationship
+          details.
         </p>
       )}
 

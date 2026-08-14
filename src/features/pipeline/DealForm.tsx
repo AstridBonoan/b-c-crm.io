@@ -174,7 +174,7 @@ export function DealForm({
 
       <div>
         <label htmlFor="stage" className="block text-sm font-medium text-ink">
-          Stage
+          Pipeline stage
         </label>
         <select id="stage" className="input-field mt-1 rounded-md" {...register('stage')}>
           {PIPELINE_STAGES.map((item) => (
