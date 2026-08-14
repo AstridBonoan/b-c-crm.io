@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
-  getLatestProspectSearchId,
   listProspects,
   prospectsToCsv,
   runProspectSearch,
@@ -23,7 +22,7 @@ import type { Prospect } from '@/features/lead-finder/types'
 export function LeadFinderPage() {
   const { user } = useAuth()
   const [prospects, setProspects] = useState<Prospect[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
@@ -35,6 +34,7 @@ export function LeadFinderPage() {
     searchId: null,
   })
   const [activeSearchLabel, setActiveSearchLabel] = useState<string | null>(null)
+  const [sessionSearchId, setSessionSearchId] = useState<string | null>(null)
   const [showAllSearches, setShowAllSearches] = useState(false)
 
   const {
@@ -67,21 +67,6 @@ export function LeadFinderPage() {
     }
   }
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const latestId = await getLatestProspectSearchId()
-        const next = { ...filters, searchId: latestId }
-        setFilters(next)
-        await load(next)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load prospects')
-        setLoading(false)
-      }
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const onSearch = handleSubmit(async (values) => {
     setSearching(true)
     setError(null)
@@ -91,6 +76,7 @@ export function LeadFinderPage() {
       const result = await runProspectSearch(values, user?.id)
       setWarning(result.warning ?? null)
       setActiveSearchLabel(result.search.query_label)
+      setSessionSearchId(result.search.id)
       const next = { ...filters, sort: 'newest' as const, searchId: result.search.id }
       setFilters(next)
       setProspects(result.prospects)
@@ -104,6 +90,10 @@ export function LeadFinderPage() {
   const applyFilters = async (patch: Partial<ProspectFilters>) => {
     const next = { ...filters, ...patch }
     setFilters(next)
+    if (!showAllSearches && !next.searchId) {
+      setProspects([])
+      return
+    }
     await load(next)
   }
 
@@ -116,8 +106,12 @@ export function LeadFinderPage() {
       await load(next)
       return
     }
-    const latestId = await getLatestProspectSearchId()
-    const next = { ...filters, searchId: latestId }
+    if (!sessionSearchId) {
+      setProspects([])
+      setFilters({ ...filters, searchId: null })
+      return
+    }
+    const next = { ...filters, searchId: sessionSearchId }
     setFilters(next)
     await load(next)
   }
@@ -262,8 +256,8 @@ export function LeadFinderPage() {
         </Panel>
       ) : prospects.length === 0 ? (
         <EmptyState
-          title="No prospects yet"
-          description="Run a search to find real local businesses from OpenStreetMap. Failures and empty results show a notice above — nothing is faked."
+          title="No search yet"
+          description="Run a search to find local businesses. Nothing is loaded until you search."
         />
       ) : (
         <Panel className="overflow-x-auto">

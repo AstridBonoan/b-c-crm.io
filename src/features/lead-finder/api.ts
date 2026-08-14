@@ -49,18 +49,6 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   return (data ?? []).map((row) => mapProspect(row as Record<string, unknown>))
 }
 
-export async function getLatestProspectSearchId(): Promise<string | null> {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('prospect_searches')
-    .select('id')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw new Error(error.message)
-  return data?.id ?? null
-}
-
 export async function getProspect(id: string): Promise<Prospect> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.from('prospects').select('*').eq('id', id).single()
