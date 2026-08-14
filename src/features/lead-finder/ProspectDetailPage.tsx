@@ -56,7 +56,11 @@ export function ProspectDetailPage() {
     return (
       <div>
         <p className="text-sm text-danger">{error ?? 'Prospect not found'}</p>
-        <Button className="mt-4" variant="secondary" onClick={() => navigate('/lead-finder')}>
+        <Button
+          className="mt-4"
+          variant="secondary"
+          onClick={() => navigate('/lead-finder')}
+        >
           Back to Lead Finder
         </Button>
       </div>
@@ -98,7 +102,14 @@ export function ProspectDetailPage() {
         description={[prospect.industry, prospect.city, prospect.state].filter(Boolean).join(' · ')}
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => navigate('/lead-finder')}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate(
+                  prospect.search_id ? `/lead-finder?s=${prospect.search_id}` : '/lead-finder',
+                )
+              }
+            >
               Back
             </Button>
             <Button onClick={() => void onSaveCrm()} disabled={busy || prospect.saved_to_crm}>
