@@ -38,7 +38,7 @@ const OPEN_DEAL_STAGES: DealStage[] = [
   'negotiating',
 ]
 
-const ACTIVE_LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified']
+const ACTIVE_LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'following_up']
 
 const ACTIVE_PROJECT_STATUSES: ProjectStatus[] = [
   'not_started',

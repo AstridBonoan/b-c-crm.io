@@ -4,8 +4,7 @@ import type { LeadStatus } from '@/types/database'
 export const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
   { value: 'new', label: 'New' },
   { value: 'contacted', label: 'Contacted' },
-  { value: 'qualified', label: 'Qualified' },
-  { value: 'unqualified', label: 'Unqualified' },
+  { value: 'following_up', label: 'Following Up' },
   { value: 'converted', label: 'Converted' },
   { value: 'lost', label: 'Lost' },
 ]
@@ -18,7 +17,7 @@ export const LEAD_FORM_STATUSES = LEAD_STATUSES.filter(
 export const leadSchema = z.object({
   source: z.string().optional(),
   service_interested: z.string().optional(),
-  status: z.enum(['new', 'contacted', 'qualified', 'unqualified', 'lost']),
+  status: z.enum(['new', 'contacted', 'following_up', 'lost']),
   estimated_value: z.string().optional(),
   notes: z.string().optional(),
   last_contacted_at: z.string().optional(),

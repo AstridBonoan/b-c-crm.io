@@ -10,8 +10,7 @@ create type public.client_status as enum ('prospect', 'active', 'inactive');
 create type public.lead_status as enum (
   'new',
   'contacted',
-  'qualified',
-  'unqualified',
+  'following_up',
   'converted',
   'lost'
 );

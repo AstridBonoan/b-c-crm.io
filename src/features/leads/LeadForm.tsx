@@ -35,21 +35,20 @@ function toDateInput(value: string | null): string {
 }
 
 function toFormValues(lead: Lead): LeadFormValues {
-  const status =
-    lead.status === 'converted' || lead.status === 'lost' || lead.status === 'new'
-      ? lead.status === 'converted'
-        ? 'qualified'
-        : lead.status
-      : lead.status === 'contacted' ||
-          lead.status === 'qualified' ||
-          lead.status === 'unqualified'
+  const status: LeadFormValues['status'] =
+    lead.status === 'converted'
+      ? 'following_up'
+      : lead.status === 'new' ||
+          lead.status === 'contacted' ||
+          lead.status === 'following_up' ||
+          lead.status === 'lost'
         ? lead.status
         : 'new'
 
   return {
     source: lead.source ?? '',
     service_interested: lead.service_interested ?? '',
-    status: lead.status === 'converted' ? 'qualified' : (status as LeadFormValues['status']),
+    status,
     estimated_value:
       lead.estimated_value === null || lead.estimated_value === undefined
         ? ''
