@@ -207,10 +207,99 @@ export async function runProspectSearch(
   }
 }
 
+function digitsOnly(value: string | null | undefined): string {
+  return (value ?? '').replace(/\D/g, '')
+}
+
+function websiteHost(value: string | null | undefined): string {
+  const raw = (value ?? '').trim().toLowerCase()
+  if (!raw) return ''
+  try {
+    const url = raw.includes('://') ? new URL(raw) : new URL(`https://${raw}`)
+    return url.hostname.replace(/^www\./, '')
+  } catch {
+    return raw.replace(/^www\./, '')
+  }
+}
+
+type CrmBusinessRow = {
+  id: string
+  name: string
+  phone: string | null
+  website: string | null
+}
+
+function matchesCrmBusiness(row: CrmBusinessRow, prospect: Prospect): boolean {
+  if (row.name.trim().toLowerCase() === prospect.business_name.trim().toLowerCase()) return true
+  const prospectPhone = digitsOnly(prospect.phone)
+  const rowPhone = digitsOnly(row.phone)
+  if (prospectPhone.length >= 7 && rowPhone === prospectPhone) return true
+  const prospectHost = websiteHost(prospect.website)
+  const rowHost = websiteHost(row.website)
+  return Boolean(prospectHost && rowHost && prospectHost === rowHost)
+}
+
+export type SaveProspectToCrmResult =
+  | { status: 'already_saved'; where: 'leads' | 'clients' }
+  | { status: 'created'; leadId: string; clientId: string }
+
+async function findExistingCrmMatch(prospect: Prospect): Promise<{
+  where: 'leads' | 'clients'
+  leadId: string | null
+  clientId: string | null
+} | null> {
+  const supabase = getSupabaseClient()
+  const [{ data: clients, error: clientError }, { data: leads, error: leadError }] = await Promise.all([
+    supabase.from('clients').select('id, name, phone, website'),
+    supabase.from('leads').select('id, client_id, clients(id, name, phone, website)'),
+  ])
+  if (clientError) throw new Error(clientError.message)
+  if (leadError) throw new Error(leadError.message)
+
+  type LeadWithClient = {
+    id: string
+    client_id: string | null
+    clients: CrmBusinessRow | CrmBusinessRow[] | null
+  }
+
+  const matchingLead = ((leads ?? []) as LeadWithClient[]).find((lead) => {
+    if (prospect.crm_lead_id && lead.id === prospect.crm_lead_id) return true
+    const linked = Array.isArray(lead.clients) ? lead.clients[0] : lead.clients
+    return linked ? matchesCrmBusiness(linked, prospect) : false
+  })
+  if (matchingLead) {
+    return { where: 'leads', leadId: matchingLead.id, clientId: matchingLead.client_id }
+  }
+
+  const matchingClient = ((clients ?? []) as CrmBusinessRow[]).find((client) =>
+    matchesCrmBusiness(client, prospect),
+  )
+  if (matchingClient) {
+    return { where: 'clients', leadId: null, clientId: matchingClient.id }
+  }
+
+  return null
+}
+
 export async function saveProspectToCrm(
   prospect: Prospect,
   userId: string | undefined,
-): Promise<{ leadId: string; clientId: string }> {
+): Promise<SaveProspectToCrmResult> {
+  const existing = await findExistingCrmMatch(prospect)
+  if (existing) {
+    const supabase = getSupabaseClient()
+    const { error: linkError } = await supabase
+      .from('prospects')
+      .update({
+        saved_to_crm: true,
+        crm_lead_id: existing.leadId,
+        crm_client_id: existing.clientId,
+      })
+      .eq('id', prospect.id)
+    if (linkError) throw new Error(linkError.message)
+    return { status: 'already_saved', where: existing.where }
+  }
+
   const client = await createClient(
     {
       client_type: 'organization',
@@ -262,7 +351,7 @@ export async function saveProspectToCrm(
     .eq('id', prospect.id)
   if (error) throw new Error(error.message)
 
-  return { leadId: lead.id, clientId: client.id }
+  return { status: 'created', leadId: lead.id, clientId: client.id }
 }
 
 export async function listProspectLists(): Promise<ProspectList[]> {
