@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
+  getProspectSearch,
   listProspects,
   prospectGoogleSearchUrl,
   prospectsToCsv,
@@ -22,6 +23,8 @@ import type { Prospect } from '@/features/lead-finder/types'
 
 export function LeadFinderPage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchFromUrl = searchParams.get('s')
   const [prospects, setProspects] = useState<Prospect[]>([])
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -41,6 +44,7 @@ export function LeadFinderPage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<ProspectSearchFormValues>({
     resolver: zodResolver(prospectSearchSchema),
@@ -67,6 +71,53 @@ export function LeadFinderPage() {
     }
   }
 
+  const restoreSearch = async (searchId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [search, rows] = await Promise.all([
+        getProspectSearch(searchId),
+        listProspects({
+          search: '',
+          industry: 'all',
+          hasWebsite: 'all',
+          sort: 'newest',
+          searchId,
+        }),
+      ])
+      setActiveSearchLabel(search.query_label)
+      setSessionSearchId(search.id)
+      setFilters({
+        search: '',
+        industry: 'all',
+        hasWebsite: 'all',
+        sort: 'newest',
+        searchId: search.id,
+      })
+      setProspects(rows)
+      reset({
+        industry: search.industry ?? '',
+        city: search.city ?? '',
+        state: search.state ?? '',
+        zip: search.zip ?? '',
+        radius_miles: search.radius_miles != null ? Number(search.radius_miles) : undefined,
+        requires_website:
+          search.requires_website === true ? 'yes' : search.requires_website === false ? 'no' : 'any',
+        business_size: search.business_size ?? '',
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore search')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!searchFromUrl) return
+    void restoreSearch(searchFromUrl)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchFromUrl])
+
   const onSearch = handleSubmit(async (values) => {
     setSearching(true)
     setError(null)
@@ -80,6 +131,7 @@ export function LeadFinderPage() {
       const next = { ...filters, sort: 'newest' as const, searchId: result.search.id }
       setFilters(next)
       setProspects(result.prospects)
+      setSearchParams({ s: result.search.id }, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {

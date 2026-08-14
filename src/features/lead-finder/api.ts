@@ -49,6 +49,13 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   return (data ?? []).map((row) => mapProspect(row as Record<string, unknown>))
 }
 
+export async function getProspectSearch(id: string): Promise<ProspectSearch> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase.from('prospect_searches').select('*').eq('id', id).single()
+  if (error) throw new Error(error.message)
+  return data as ProspectSearch
+}
+
 export async function getProspect(id: string): Promise<Prospect> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.from('prospects').select('*').eq('id', id).single()
