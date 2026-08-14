@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
+  getLatestProspectSearch,
   getProspectSearch,
   listProspects,
   prospectGoogleSearchUrl,
@@ -113,8 +114,26 @@ export function LeadFinderPage() {
   }
 
   useEffect(() => {
-    if (!searchFromUrl) return
-    void restoreSearch(searchFromUrl)
+    let cancelled = false
+    const run = async () => {
+      if (searchFromUrl) {
+        await restoreSearch(searchFromUrl)
+        return
+      }
+      try {
+        const latest = await getLatestProspectSearch()
+        if (cancelled || !latest) return
+        setSearchParams({ s: latest.id }, { replace: true })
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to restore search')
+        }
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchFromUrl])
 
