@@ -6,7 +6,7 @@ Roles are soft labels only: growth work often sits with the CMO, but both founde
 
 ## Phase 1 (this branch)
 
-- Prospect search (industry, city, state, ZIP, radius, website filter)
+- Prospect search (industry, city/borough, state, ZIP, radius, website filter)
 - Discovery via OpenStreetMap Overpass (errors/empty results surface as warnings — no demo data)
 - Prospect list filters/sort + CSV export
 - Prospect detail (contact info, notes)

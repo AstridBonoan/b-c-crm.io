@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 export const prospectSearchSchema = z.object({
   industry: z.string().trim().min(1, 'Industry is required'),
-  category: z.string().optional(),
   city: z.string().trim().min(1, 'City/Borough is required'),
   state: z.string().trim().min(2, 'State is required').max(2, 'Use 2-letter state'),
   zip: z.string().optional(),
