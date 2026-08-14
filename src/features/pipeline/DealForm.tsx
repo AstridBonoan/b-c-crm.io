@@ -3,8 +3,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { InputHTMLAttributes } from 'react'
 import type { Client, Contact, Deal } from '@/types/database'
-import { listContactsForClient } from '@/features/pipeline/api'
-import { PIPELINE_STAGES, dealSchema, type DealFormValues } from '@/features/pipeline/schemas'
+import { listContactsForClient, listLeadOptions, type LeadOption } from '@/features/pipeline/api'
+import {
+  PIPELINE_STAGES,
+  STAGE_PROBABILITY,
+  dealSchema,
+  type DealFormValues,
+} from '@/features/pipeline/schemas'
 import { Button } from '@/components/ui/Button'
 
 type DealFormProps = {
@@ -21,11 +26,16 @@ const emptyValues = (stage: DealFormValues['stage']): DealFormValues => ({
   name: '',
   client_id: '',
   contact_id: '',
+  lead_id: '',
   service: '',
+  source: '',
   estimated_value: '',
   proposal_amount: '',
   stage,
+  probability: String(STAGE_PROBABILITY[stage]),
   expected_close_date: '',
+  next_action: '',
+  next_follow_up_at: '',
   notes: '',
 })
 
@@ -34,7 +44,9 @@ function toFormValues(deal: Deal): DealFormValues {
     name: deal.name,
     client_id: deal.client_id ?? '',
     contact_id: deal.contact_id ?? '',
+    lead_id: deal.lead_id ?? '',
     service: deal.service ?? '',
+    source: deal.source ?? '',
     estimated_value:
       deal.estimated_value === null || deal.estimated_value === undefined
         ? ''
@@ -44,7 +56,13 @@ function toFormValues(deal: Deal): DealFormValues {
         ? ''
         : String(deal.proposal_amount),
     stage: deal.stage,
+    probability:
+      deal.probability === null || deal.probability === undefined
+        ? String(STAGE_PROBABILITY[deal.stage])
+        : String(deal.probability),
     expected_close_date: deal.expected_close_date ?? '',
+    next_action: deal.next_action ?? '',
+    next_follow_up_at: deal.next_follow_up_at ?? '',
     notes: deal.notes ?? '',
   }
 }
@@ -62,6 +80,7 @@ export function DealForm({
     Pick<Contact, 'id' | 'first_name' | 'last_name' | 'client_id'>[]
   >([])
   const [contactsError, setContactsError] = useState<string | null>(null)
+  const [leads, setLeads] = useState<LeadOption[]>([])
 
   const {
     register,
@@ -69,17 +88,49 @@ export function DealForm({
     watch,
     setValue,
     reset,
-    formState: { errors },
+    getValues,
+    formState: { errors, dirtyFields },
   } = useForm<DealFormValues>({
     resolver: zodResolver(dealSchema),
     defaultValues: initial ? toFormValues(initial) : emptyValues(defaultStage),
   })
 
   const clientId = watch('client_id')
+  const stage = watch('stage')
+  const leadId = watch('lead_id')
 
   useEffect(() => {
     reset(initial ? toFormValues(initial) : emptyValues(defaultStage))
   }, [initial, defaultStage, reset])
+
+  useEffect(() => {
+    void listLeadOptions()
+      .then(setLeads)
+      .catch(() => setLeads([]))
+  }, [])
+
+  useEffect(() => {
+    if (!dirtyFields.probability) {
+      setValue('probability', String(STAGE_PROBABILITY[stage]))
+    }
+  }, [stage, dirtyFields.probability, setValue])
+
+  useEffect(() => {
+    if (!leadId || initial) return
+    const lead = leads.find((item) => item.id === leadId)
+    if (!lead) return
+    if (lead.client_id) setValue('client_id', lead.client_id)
+    if (lead.contact_id) setValue('contact_id', lead.contact_id)
+    if (lead.source) setValue('source', lead.source)
+    if (lead.service_interested) setValue('service', lead.service_interested)
+    if (lead.estimated_value != null) setValue('estimated_value', String(lead.estimated_value))
+    if (!getValues('name') && (lead.clients?.name || lead.service_interested)) {
+      setValue(
+        'name',
+        [lead.clients?.name, lead.service_interested].filter(Boolean).join(' — '),
+      )
+    }
+  }, [leadId, leads, initial, setValue, getValues])
 
   useEffect(() => {
     if (!clientId) {
@@ -98,7 +149,12 @@ export function DealForm({
         if (currentContact && data.some((contact) => contact.id === currentContact)) {
           setValue('contact_id', currentContact)
         } else {
-          setValue('contact_id', '')
+          const selected = getValues('contact_id')
+          if (selected && data.some((contact) => contact.id === selected)) {
+            setValue('contact_id', selected)
+          } else {
+            setValue('contact_id', '')
+          }
         }
       })
       .catch((err: unknown) => {
@@ -110,7 +166,7 @@ export function DealForm({
     return () => {
       active = false
     }
-  }, [clientId, initial?.contact_id, setValue])
+  }, [clientId, initial?.contact_id, setValue, getValues])
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -121,9 +177,24 @@ export function DealForm({
           Stage
         </label>
         <select id="stage" className="input-field mt-1 rounded-md" {...register('stage')}>
-          {PIPELINE_STAGES.map((stage) => (
-            <option key={stage.value} value={stage.value}>
-              {stage.label}
+          {PIPELINE_STAGES.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="lead_id" className="block text-sm font-medium text-ink">
+          Source lead
+        </label>
+        <select id="lead_id" className="input-field mt-1 rounded-md" {...register('lead_id')}>
+          <option value="">Not linked to a lead</option>
+          {leads.map((lead) => (
+            <option key={lead.id} value={lead.id}>
+              {lead.clients?.name ?? 'Unlinked lead'}
+              {lead.service_interested ? ` · ${lead.service_interested}` : ''}
             </option>
           ))}
         </select>
@@ -163,7 +234,10 @@ export function DealForm({
         {contactsError ? <p className="mt-1 text-xs text-danger">{contactsError}</p> : null}
       </div>
 
-      <Field id="service" label="Service" error={errors.service?.message} {...register('service')} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field id="service" label="Service" error={errors.service?.message} {...register('service')} />
+        <Field id="source" label="Source" error={errors.source?.message} {...register('source')} />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
@@ -186,12 +260,38 @@ export function DealForm({
         />
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          id="probability"
+          label="Win probability (%)"
+          type="number"
+          min="0"
+          max="100"
+          error={errors.probability?.message}
+          {...register('probability')}
+        />
+        <Field
+          id="expected_close_date"
+          label="Expected close date"
+          type="date"
+          error={errors.expected_close_date?.message}
+          {...register('expected_close_date')}
+        />
+      </div>
+
       <Field
-        id="expected_close_date"
-        label="Expected close date"
+        id="next_action"
+        label="Next action"
+        error={errors.next_action?.message}
+        {...register('next_action')}
+      />
+
+      <Field
+        id="next_follow_up_at"
+        label="Next follow-up"
         type="date"
-        error={errors.expected_close_date?.message}
-        {...register('expected_close_date')}
+        error={errors.next_follow_up_at?.message}
+        {...register('next_follow_up_at')}
       />
 
       <div>

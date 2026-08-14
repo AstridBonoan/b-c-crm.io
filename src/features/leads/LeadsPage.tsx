@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
@@ -23,6 +24,7 @@ import {
   type LeadFormValues,
 } from '@/features/leads/schemas'
 import type { Client, Lead, LeadStatus } from '@/types/database'
+import { createDealFromLead } from '@/features/pipeline/api'
 
 function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'danger' {
   if (status === 'converted' || status === 'qualified') return 'success'
@@ -33,6 +35,7 @@ function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'dang
 
 export function LeadsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [leads, setLeads] = useState<LeadWithRelations[]>([])
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +49,7 @@ export function LeadsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<LeadWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [pipelineBusyId, setPipelineBusyId] = useState<string | null>(null)
 
   const loadClients = useCallback(async () => {
     const data = await listClientOptions()
@@ -109,6 +113,21 @@ export function LeadsPage() {
     }
   }
 
+  const handleToPipeline = async (lead: LeadWithRelations) => {
+    if (lead.status === 'lost' || lead.status === 'unqualified') return
+    setPipelineBusyId(lead.id)
+    setError(null)
+    try {
+      await createDealFromLead(lead, user?.id)
+      await load()
+      navigate('/pipeline')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create deal')
+    } finally {
+      setPipelineBusyId(null)
+    }
+  }
+
   const handleDelete = async () => {
     if (!deleting) return
     setDeleteBusy(true)
@@ -128,7 +147,7 @@ export function LeadsPage() {
     <div>
       <PageHeader
         title="Leads"
-        description="Track potential customers before they become deals or customers."
+        description="Track inbound interest here, then send a lead into the sales pipeline as an opportunity."
         actions={<Button onClick={openCreate}>Add lead</Button>}
       />
 
@@ -218,10 +237,20 @@ export function LeadsPage() {
                     {lead.next_follow_up_at ? lead.next_follow_up_at.slice(0, 10) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" size="sm" onClick={() => openEdit(lead)}>
                         Edit
                       </Button>
+                      {lead.status !== 'lost' && lead.status !== 'unqualified' ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={pipelineBusyId === lead.id}
+                          onClick={() => void handleToPipeline(lead)}
+                        >
+                          {pipelineBusyId === lead.id ? 'Sending…' : 'To pipeline'}
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="sm"
