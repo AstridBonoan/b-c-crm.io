@@ -18,7 +18,10 @@ import {
 } from '@/features/pipeline/api'
 import {
   formatMoney,
+  isFollowUpOverdue,
+  isOpenStage,
   PIPELINE_STAGES,
+  weightedValue,
   type DealFormValues,
 } from '@/features/pipeline/schemas'
 import type { Client, Deal, DealStage } from '@/types/database'
@@ -78,9 +81,32 @@ export function PipelinePage() {
 
   const openPipelineValue = useMemo(() => {
     return deals
-      .filter((deal) => deal.stage !== 'won' && deal.stage !== 'lost')
+      .filter((deal) => isOpenStage(deal.stage))
       .reduce((sum, deal) => sum + Number(deal.estimated_value ?? 0), 0)
   }, [deals])
+
+  const expectedRevenue = useMemo(() => {
+    return deals
+      .filter((deal) => isOpenStage(deal.stage))
+      .reduce((sum, deal) => sum + weightedValue(deal), 0)
+  }, [deals])
+
+  const wonValue = useMemo(() => {
+    return deals
+      .filter((deal) => deal.stage === 'won')
+      .reduce((sum, deal) => sum + Number(deal.proposal_amount ?? deal.estimated_value ?? 0), 0)
+  }, [deals])
+
+  const lostValue = useMemo(() => {
+    return deals
+      .filter((deal) => deal.stage === 'lost')
+      .reduce((sum, deal) => sum + Number(deal.estimated_value ?? 0), 0)
+  }, [deals])
+
+  const overdueCount = useMemo(
+    () => deals.filter((deal) => isFollowUpOverdue(deal)).length,
+    [deals],
+  )
 
   const openCreate = (stage: DealStage = 'new_lead') => {
     setEditing(null)
@@ -101,7 +127,7 @@ export function PipelinePage() {
     setFormError(null)
     try {
       if (editing) {
-        await updateDeal(editing.id, values)
+        await updateDeal(editing.id, values, user?.id)
       } else {
         await createDeal(values, user?.id)
       }
@@ -137,7 +163,7 @@ export function PipelinePage() {
     setMovingId(dealId)
     setDeals((prev) => prev.map((deal) => (deal.id === dealId ? { ...deal, stage } : deal)))
     try {
-      await updateDealStage(dealId, stage)
+      await updateDealStage(dealId, stage, user?.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to move deal')
       await load()
@@ -177,25 +203,27 @@ export function PipelinePage() {
     <div>
       <PageHeader
         title="Sales Pipeline"
-        description="Move opportunities through stages from first interest to won or lost."
+        description="Move opportunities from first interest through Interested, proposal, and close. Winning a deal linked to a client creates a customer and a project."
         actions={<Button onClick={() => openCreate('new_lead')}>Add deal</Button>}
       />
 
       <div className="mb-4 flex flex-wrap gap-3 text-sm">
-        <Panel className="px-4 py-3">
-          <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">
-            Open pipeline value
-          </p>
-          <p className="mt-1 text-xl font-semibold text-ink">{formatMoney(openPipelineValue)}</p>
-        </Panel>
-        <Panel className="px-4 py-3">
-          <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">
-            Active deals
-          </p>
-          <p className="mt-1 text-xl font-semibold text-ink">
-            {deals.filter((deal) => deal.stage !== 'won' && deal.stage !== 'lost').length}
-          </p>
-        </Panel>
+        <Metric label="Open pipeline value" value={formatMoney(openPipelineValue)} />
+        <Metric
+          label="Weighted expected"
+          value={formatMoney(expectedRevenue)}
+        />
+        <Metric
+          label="Active deals"
+          value={String(deals.filter((deal) => isOpenStage(deal.stage)).length)}
+        />
+        <Metric label="Won" value={formatMoney(wonValue)} />
+        <Metric label="Lost" value={formatMoney(lostValue)} />
+        <Metric
+          label="Overdue follow-ups"
+          value={String(overdueCount)}
+          warn={overdueCount > 0}
+        />
       </div>
 
       {error ? (
@@ -276,12 +304,34 @@ export function PipelinePage() {
                             ? ` · ${deal.contacts.first_name} ${deal.contacts.last_name}`
                             : ''}
                         </p>
+                        {deal.service ? (
+                          <p className="mt-1 text-xs text-ink-muted">{deal.service}</p>
+                        ) : null}
+                        {deal.source ? (
+                          <p className="mt-1 text-[11px] text-ink-muted">Source: {deal.source}</p>
+                        ) : null}
                         <p className="mt-2 text-sm font-medium text-ink">
                           {formatMoney(deal.estimated_value)}
+                          <span className="ml-1 text-xs font-normal text-ink-muted">
+                            · {deal.probability ?? 0}% · {formatMoney(weightedValue(deal))} expected
+                          </span>
                         </p>
+                        {deal.next_action ? (
+                          <p className="mt-1 text-[11px] text-ink">{deal.next_action}</p>
+                        ) : null}
                         {deal.expected_close_date ? (
                           <p className="mt-1 text-[11px] text-ink-muted">
                             Close {deal.expected_close_date}
+                          </p>
+                        ) : null}
+                        {deal.next_follow_up_at ? (
+                          <p
+                            className={`mt-1 text-[11px] ${
+                              isFollowUpOverdue(deal) ? 'font-medium text-danger' : 'text-ink-muted'
+                            }`}
+                          >
+                            Follow-up {deal.next_follow_up_at.slice(0, 10)}
+                            {isFollowUpOverdue(deal) ? ' · overdue' : ''}
                           </p>
                         ) : null}
                         <div className="mt-3 flex gap-2">
@@ -334,5 +384,22 @@ export function PipelinePage() {
         onConfirm={() => void handleDelete()}
       />
     </div>
+  )
+}
+
+function Metric({
+  label,
+  value,
+  warn = false,
+}: {
+  label: string
+  value: string
+  warn?: boolean
+}) {
+  return (
+    <Panel className="px-4 py-3">
+      <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">{label}</p>
+      <p className={`mt-1 text-xl font-semibold ${warn ? 'text-danger' : 'text-ink'}`}>{value}</p>
+    </Panel>
   )
 }

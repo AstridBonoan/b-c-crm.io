@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase'
 import type { Activity, DealStage, LeadStatus, ProjectStatus, Task } from '@/types/database'
+import { isFollowUpOverdue, isOpenStage, weightedValue } from '@/features/pipeline/schemas'
 
 export type DashboardMetrics = {
   newLeads: number
@@ -9,6 +10,9 @@ export type DashboardMetrics = {
   activeProjects: number
   completedProjects: number
   potentialRevenue: number
+  expectedRevenue: number
+  wonValue: number
+  overdueFollowUps: number
   projectRevenue: number
 }
 
@@ -30,13 +34,6 @@ export type DashboardData = {
   upcomingTasks: DashboardTask[]
 }
 
-const OPEN_DEAL_STAGES: DealStage[] = [
-  'new_lead',
-  'contacted',
-  'meeting',
-  'proposal_sent',
-  'negotiating',
-]
 
 const ACTIVE_LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'following_up']
 
@@ -73,7 +70,9 @@ export async function loadDashboard(): Promise<DashboardData> {
     tasksResult,
   ] = await Promise.all([
     supabase.from('leads').select('status'),
-    supabase.from('deals').select('stage, estimated_value, proposal_amount'),
+    supabase
+      .from('deals')
+      .select('stage, estimated_value, proposal_amount, probability, next_follow_up_at'),
     supabase.from('clients').select('client_status'),
     supabase.from('projects').select('status, project_value'),
     supabase
@@ -103,6 +102,8 @@ export async function loadDashboard(): Promise<DashboardData> {
           stage: DealStage
           estimated_value: number | null
           proposal_amount: number | null
+          probability: number | null
+          next_follow_up_at: string | null
         }[]
       | null) ?? []
   const clients = (clientsResult.data as { client_status: string }[] | null) ?? []
@@ -110,7 +111,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     (projectsResult.data as { status: ProjectStatus; project_value: number | null }[] | null) ??
     []
 
-  const openDeals = deals.filter((deal) => OPEN_DEAL_STAGES.includes(deal.stage))
+  const openDeals = deals.filter((deal) => isOpenStage(deal.stage))
   const activeProjects = projects.filter((project) =>
     ACTIVE_PROJECT_STATUSES.includes(project.status),
   )
@@ -128,6 +129,11 @@ export async function loadDashboard(): Promise<DashboardData> {
       (sum, deal) => sum + money(deal.proposal_amount ?? deal.estimated_value),
       0,
     ),
+    expectedRevenue: openDeals.reduce((sum, deal) => sum + weightedValue(deal), 0),
+    wonValue: deals
+      .filter((deal) => deal.stage === 'won')
+      .reduce((sum, deal) => sum + money(deal.proposal_amount ?? deal.estimated_value), 0),
+    overdueFollowUps: deals.filter((deal) => isFollowUpOverdue(deal)).length,
     projectRevenue: activeProjects.reduce((sum, project) => sum + money(project.project_value), 0),
   }
 

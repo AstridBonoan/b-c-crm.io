@@ -59,6 +59,11 @@ export function DashboardPage() {
     },
     { label: 'Open deals', value: metrics ? String(metrics.openDeals) : '—', to: '/pipeline' },
     {
+      label: 'Weighted expected',
+      value: metrics ? formatDashboardMoney(metrics.expectedRevenue) : '—',
+      to: '/pipeline',
+    },
+    {
       label: 'Active clients',
       value: metrics ? String(metrics.activeClients) : '—',
       to: '/clients?status=active',
@@ -79,9 +84,19 @@ export function DashboardPage() {
       to: '/deals',
     },
     {
+      label: 'Won value',
+      value: metrics ? formatDashboardMoney(metrics.wonValue) : '—',
+      to: '/pipeline',
+    },
+    {
       label: 'Current project revenue',
       value: metrics ? formatDashboardMoney(metrics.projectRevenue) : '—',
       to: '/projects',
+    },
+    {
+      label: 'Overdue follow-ups',
+      value: metrics ? String(metrics.overdueFollowUps) : '—',
+      to: '/pipeline',
     },
   ]
 

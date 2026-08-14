@@ -19,13 +19,10 @@ import {
   updateLead,
   type LeadWithRelations,
 } from '@/features/leads/api'
-import {
-  formatMoney,
-  statusLabel,
-  type LeadFormValues,
-} from '@/features/leads/schemas'
+import { formatMoney, statusLabel, type LeadFormValues } from '@/features/leads/schemas'
 import type { ClientFormValues } from '@/features/clients/schemas'
 import type { Lead, LeadStatus } from '@/types/database'
+import { createDealFromLead } from '@/features/pipeline/api'
 
 function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'danger' {
   if (status === 'converted') return 'success'
@@ -49,12 +46,23 @@ type LeadTableProps = {
   title: string
   leads: LeadWithRelations[]
   showTrash?: boolean
+  pipelineBusyId: string | null
   onConvert: (lead: LeadWithRelations) => void
+  onToPipeline: (lead: LeadWithRelations) => void
   onEdit: (lead: Lead) => void
   onDelete?: (lead: LeadWithRelations) => void
 }
 
-function LeadTable({ title, leads, showTrash, onConvert, onEdit, onDelete }: LeadTableProps) {
+function LeadTable({
+  title,
+  leads,
+  showTrash,
+  pipelineBusyId,
+  onConvert,
+  onToPipeline,
+  onEdit,
+  onDelete,
+}: LeadTableProps) {
   return (
     <section className="mb-6">
       <h2 className="mb-2 text-sm font-semibold text-ink">
@@ -105,6 +113,16 @@ function LeadTable({ title, leads, showTrash, onConvert, onEdit, onDelete }: Lea
                           Convert
                         </Button>
                       ) : null}
+                      {lead.status !== 'lost' ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={pipelineBusyId === lead.id}
+                          onClick={() => onToPipeline(lead)}
+                        >
+                          {pipelineBusyId === lead.id ? 'Sending…' : 'To pipeline'}
+                        </Button>
+                      ) : null}
                       <Button variant="secondary" size="sm" onClick={() => onEdit(lead)}>
                         Edit
                       </Button>
@@ -145,6 +163,7 @@ export function LeadsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<LeadWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [pipelineBusyId, setPipelineBusyId] = useState<string | null>(null)
   const [converting, setConverting] = useState<LeadWithRelations | null>(null)
   const [convertBusy, setConvertBusy] = useState(false)
   const [convertError, setConvertError] = useState<string | null>(null)
@@ -177,10 +196,7 @@ export function LeadsPage() {
     () => leads.filter((lead) => lead.status === 'following_up'),
     [leads],
   )
-  const lostLeads = useMemo(
-    () => leads.filter((lead) => lead.status === 'lost'),
-    [leads],
-  )
+  const lostLeads = useMemo(() => leads.filter((lead) => lead.status === 'lost'), [leads])
 
   const openCreate = () => {
     setEditing(null)
@@ -210,6 +226,21 @@ export function LeadsPage() {
       setFormError(err instanceof Error ? err.message : 'Failed to save lead')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleToPipeline = async (lead: LeadWithRelations) => {
+    if (lead.status === 'lost') return
+    setPipelineBusyId(lead.id)
+    setError(null)
+    try {
+      await createDealFromLead(lead, user?.id)
+      await load()
+      navigate('/pipeline')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create deal')
+    } finally {
+      setPipelineBusyId(null)
     }
   }
 
@@ -250,12 +281,19 @@ export function LeadsPage() {
   }
 
   const hasAnyTableRows = leads.length > 0
+  const tableProps = {
+    pipelineBusyId,
+    onConvert: openConvert,
+    onToPipeline: (lead: LeadWithRelations) => void handleToPipeline(lead),
+    onEdit: openEdit,
+    onDelete: setDeleting,
+  }
 
   return (
     <div>
       <PageHeader
         title="Leads"
-        description="Capture interest first. When they’re ready, convert the lead into a client."
+        description="Capture interest, send a lead into the pipeline as a deal, or convert them into a client."
         actions={<Button onClick={openCreate}>Add lead</Button>}
       />
 
@@ -291,49 +329,21 @@ export function LeadsPage() {
         ) : (
           <EmptyState
             title="No leads yet"
-            description="Capture inbound interest here, then convert a lead into a client."
+            description="Capture inbound interest here, then send a lead to the pipeline or convert them into a client."
             action={<Button onClick={openCreate}>Add lead</Button>}
           />
         )
       ) : (
         <>
-          <LeadTable
-            title="All leads"
-            leads={leads}
-            showTrash
-            onConvert={openConvert}
-            onEdit={openEdit}
-            onDelete={setDeleting}
-          />
+          <LeadTable title="All leads" leads={leads} showTrash {...tableProps} />
           {contactedLeads.length > 0 ? (
-            <LeadTable
-              title="Contacted"
-              leads={contactedLeads}
-              showTrash
-              onConvert={openConvert}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-            />
+            <LeadTable title="Contacted" leads={contactedLeads} showTrash {...tableProps} />
           ) : null}
           {followingUpLeads.length > 0 ? (
-            <LeadTable
-              title="Following Up"
-              leads={followingUpLeads}
-              showTrash
-              onConvert={openConvert}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-            />
+            <LeadTable title="Following Up" leads={followingUpLeads} showTrash {...tableProps} />
           ) : null}
           {lostLeads.length > 0 ? (
-            <LeadTable
-              title="Lost"
-              leads={lostLeads}
-              showTrash
-              onConvert={openConvert}
-              onEdit={openEdit}
-              onDelete={setDeleting}
-            />
+            <LeadTable title="Lost" leads={lostLeads} showTrash {...tableProps} />
           ) : null}
         </>
       )}
@@ -351,9 +361,7 @@ export function LeadsPage() {
         <LeadForm
           initial={editing}
           linkedClientName={
-            editing
-              ? leads.find((lead) => lead.id === editing.id)?.clients?.name ?? null
-              : null
+            editing ? (leads.find((lead) => lead.id === editing.id)?.clients?.name ?? null) : null
           }
           submitting={submitting}
           formError={formError}

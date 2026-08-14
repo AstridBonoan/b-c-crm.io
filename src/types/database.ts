@@ -74,6 +74,7 @@ export type Lead = {
 export type DealStage =
   | 'new_lead'
   | 'contacted'
+  | 'interested'
   | 'meeting'
   | 'proposal_sent'
   | 'negotiating'
@@ -87,10 +88,14 @@ export type Deal = {
   contact_id: string | null
   lead_id: string | null
   service: string | null
+  source: string | null
   estimated_value: number | null
   proposal_amount: number | null
   stage: DealStage
+  probability: number | null
   expected_close_date: string | null
+  next_action: string | null
+  next_follow_up_at: string | null
   assigned_to: string | null
   notes: string | null
   created_at: string
