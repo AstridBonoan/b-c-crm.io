@@ -168,7 +168,7 @@ export function LeadsPage() {
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search source, service, notes…"
+          placeholder="Search company, source, service, notes…"
           className="input-field rounded-md lg:max-w-sm"
         />
         <select
@@ -252,12 +252,12 @@ export function LeadsPage() {
                 >
                   <td className="px-4 py-3">
                     <p className="font-medium text-ink">
-                      {lead.service_interested || lead.source || 'New lead'}
+                      {lead.company_name || lead.clients?.name || lead.service_interested || lead.source || 'New lead'}
                     </p>
                     <p className="text-xs text-ink-muted">
                       {lead.clients?.name
                         ? `Client: ${lead.clients.name}`
-                        : 'Not converted yet'}
+                        : 'Not a client yet'}
                     </p>
                   </td>
                   <td className="px-4 py-3">

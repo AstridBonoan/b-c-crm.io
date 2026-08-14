@@ -86,6 +86,7 @@ create table public.leads (
   id uuid primary key default gen_random_uuid(),
   client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
+  company_name text,
   source text,
   service_interested text,
   status public.lead_status not null default 'new',

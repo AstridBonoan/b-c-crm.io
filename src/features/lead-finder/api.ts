@@ -9,7 +9,6 @@ import type {
 } from '@/features/lead-finder/types'
 import type { ProspectRow } from '@/types/database'
 import { createLead } from '@/features/leads/api'
-import { createClient } from '@/features/clients/api'
 
 export type ProspectFilters = {
   search: string
@@ -241,7 +240,7 @@ function matchesCrmBusiness(row: CrmBusinessRow, prospect: Prospect): boolean {
 
 export type SaveProspectToCrmResult =
   | { status: 'already_saved'; where: 'leads' | 'clients' }
-  | { status: 'created'; leadId: string; clientId: string }
+  | { status: 'created'; leadId: string }
 
 async function findExistingCrmMatch(prospect: Prospect): Promise<{
   where: 'leads' | 'clients'
@@ -251,19 +250,27 @@ async function findExistingCrmMatch(prospect: Prospect): Promise<{
   const supabase = getSupabaseClient()
   const [{ data: clients, error: clientError }, { data: leads, error: leadError }] = await Promise.all([
     supabase.from('clients').select('id, name, phone, website'),
-    supabase.from('leads').select('id, client_id, clients(id, name, phone, website)'),
+    supabase.from('leads').select('id, company_name, notes, client_id, clients(id, name, phone, website)'),
   ])
   if (clientError) throw new Error(clientError.message)
   if (leadError) throw new Error(leadError.message)
 
   type LeadWithClient = {
     id: string
+    company_name: string | null
+    notes: string | null
     client_id: string | null
     clients: CrmBusinessRow | CrmBusinessRow[] | null
   }
 
   const matchingLead = ((leads ?? []) as LeadWithClient[]).find((lead) => {
     if (prospect.crm_lead_id && lead.id === prospect.crm_lead_id) return true
+    if (
+      lead.company_name &&
+      lead.company_name.trim().toLowerCase() === prospect.business_name.trim().toLowerCase()
+    ) {
+      return true
+    }
     const linked = Array.isArray(lead.clients) ? lead.clients[0] : lead.clients
     return linked ? matchesCrmBusiness(linked, prospect) : false
   })
@@ -300,33 +307,26 @@ export async function saveProspectToCrm(
     return { status: 'already_saved', where: existing.where }
   }
 
-  const client = await createClient(
-    {
-      client_type: 'organization',
-      client_status: 'prospect',
-      name: prospect.business_name,
-      first_name: '',
-      last_name: '',
-      industry: prospect.industry ?? undefined,
-      website: prospect.website ?? undefined,
-      email: undefined,
-      phone: prospect.phone ?? undefined,
-      address: prospect.address ?? undefined,
-      location: [prospect.city, prospect.state].filter(Boolean).join(', ') || undefined,
-      notes: 'Imported from Lead Finder.',
-    },
-    userId,
-  )
+  const address = [prospect.address, prospect.city, prospect.state, prospect.zip]
+    .filter(Boolean)
+    .join(', ')
+  const notes = [
+    prospect.phone ? `Phone: ${prospect.phone}` : null,
+    prospect.website ? `Website: ${prospect.website}` : 'Website not found in map/company data — verify manually.',
+    address ? `Address: ${address}` : null,
+    'Imported from Lead Finder.',
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   const lead = await createLead(
     {
+      company_name: prospect.business_name,
       source: 'Lead Finder',
       service_interested: prospect.industry ?? '',
       status: 'new',
       estimated_value: '',
-      notes: prospect.website
-        ? `Website: ${prospect.website}`
-        : 'Website not found in map/company data — verify manually.',
+      notes,
       last_contacted_at: '',
       next_follow_up_at: prospect.next_follow_up_at ?? '',
     },
@@ -334,24 +334,18 @@ export async function saveProspectToCrm(
   )
 
   const supabase = getSupabaseClient()
-  const { error: leadUpdateError } = await supabase
-    .from('leads')
-    .update({ client_id: client.id, source: 'Lead Finder' })
-    .eq('id', lead.id)
-  if (leadUpdateError) throw new Error(leadUpdateError.message)
-
   const { error } = await supabase
     .from('prospects')
     .update({
       saved_to_crm: true,
       crm_lead_id: lead.id,
-      crm_client_id: client.id,
+      crm_client_id: null,
       pipeline_status: 'researching',
     })
     .eq('id', prospect.id)
   if (error) throw new Error(error.message)
 
-  return { status: 'created', leadId: lead.id, clientId: client.id }
+  return { status: 'created', leadId: lead.id }
 }
 
 export async function listProspectLists(): Promise<ProspectList[]> {

@@ -15,6 +15,7 @@ export const LEAD_FORM_STATUSES = LEAD_STATUSES.filter(
 )
 
 export const leadSchema = z.object({
+  company_name: z.string().optional(),
   source: z.string().optional(),
   service_interested: z.string().optional(),
   status: z.enum(['new', 'contacted', 'following_up', 'lost']),
