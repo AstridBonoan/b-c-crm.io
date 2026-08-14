@@ -55,6 +55,18 @@ export async function getProspectSearch(id: string): Promise<ProspectSearch> {
   return data as ProspectSearch
 }
 
+export async function getLatestProspectSearch(): Promise<ProspectSearch | null> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('prospect_searches')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return (data as ProspectSearch | null) ?? null
+}
+
 export async function getProspect(id: string): Promise<Prospect> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.from('prospects').select('*').eq('id', id).single()
