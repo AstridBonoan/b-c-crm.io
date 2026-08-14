@@ -300,23 +300,29 @@ export function LeadsPage() {
           <LeadTable
             title="All leads"
             leads={leads}
+            showTrash
             onConvert={openConvert}
             onEdit={openEdit}
+            onDelete={setDeleting}
           />
           {contactedLeads.length > 0 ? (
             <LeadTable
               title="Contacted"
               leads={contactedLeads}
+              showTrash
               onConvert={openConvert}
               onEdit={openEdit}
+              onDelete={setDeleting}
             />
           ) : null}
           {followingUpLeads.length > 0 ? (
             <LeadTable
               title="Following Up"
               leads={followingUpLeads}
+              showTrash
               onConvert={openConvert}
               onEdit={openEdit}
+              onDelete={setDeleting}
             />
           ) : null}
           {lostLeads.length > 0 ? (
