@@ -101,12 +101,12 @@ function SignInForm({
 }
 
 export function LoginPage() {
-  const { user, profile, loading, configured, signOut } = useAuth()
+  const { user, profile, loading, profileReady, configured, signOut } = useAuth()
   const { theme } = useTheme()
   const [accessBanner, setAccessBanner] = useState<string | null>(null)
 
   useEffect(() => {
-    if (loading || !user) return
+    if (loading || !profileReady || !user) return
     if (profile?.is_active) return
 
     const message = profile
@@ -115,9 +115,9 @@ export function LoginPage() {
 
     setAccessBanner(message)
     void signOut()
-  }, [loading, user, profile, signOut])
+  }, [loading, profileReady, user, profile, signOut])
 
-  if (loading) {
+  if (loading || (user && !profileReady)) {
     return <LoadingScreen label="Loading…" />
   }
 

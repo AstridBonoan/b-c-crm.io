@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileReady, setProfileReady] = useState(false)
   const configured = env.isSupabaseConfigured
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -55,22 +56,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       if (data.session?.user) {
         void loadProfile(data.session.user.id).finally(() => {
-          if (mounted) setLoading(false)
+          if (mounted) {
+            setProfileReady(true)
+            setLoading(false)
+          }
         })
       } else {
+        setProfileReady(true)
         setLoading(false)
       }
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
-      if (nextSession?.user) {
-        void loadProfile(nextSession.user.id)
-      } else {
+      if (!nextSession?.user) {
         setProfile(null)
+        setProfileReady(true)
+        return
       }
+      if (event === 'TOKEN_REFRESHED') return
+      // Supabase can deadlock if other auth/DB calls run inside this callback.
+      window.setTimeout(() => {
+        if (!mounted) return
+        setProfileReady(false)
+        void loadProfile(nextSession.user.id).finally(() => {
+          if (mounted) setProfileReady(true)
+        })
+      }, 0)
     })
 
     return () => {
@@ -94,12 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error.message }
       }
 
+      setSession(data.session)
+      setProfileReady(false)
+
       const userId = data.user?.id
       if (!userId) {
+        setProfileReady(true)
         return { error: 'Sign-in failed. Try again.' }
       }
 
       const nextProfile = await loadProfile(userId)
+      setProfileReady(true)
       if (!nextProfile) {
         await supabase.auth.signOut()
         setProfile(null)
@@ -127,7 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = tryGetSupabaseClient()
     if (!supabase) return
     await supabase.auth.signOut()
+    setSession(null)
     setProfile(null)
+    setProfileReady(true)
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -144,12 +165,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       profile,
       loading,
+      profileReady,
       configured,
       signIn,
       signOut,
       refreshProfile,
     }),
-    [session, profile, loading, configured, signIn, signOut, refreshProfile],
+    [session, profile, loading, profileReady, configured, signIn, signOut, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
