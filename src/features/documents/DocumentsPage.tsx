@@ -101,8 +101,8 @@ export function DocumentsPage() {
     setFormError(null)
     try {
       for (const file of files) {
-        const name =
-          files.length === 1 && values.name.trim() ? values.name.trim() : file.name
+        const customName = values.name.trim()
+        const name = files.length === 1 && customName ? customName : file.name
         await uploadDocument({ ...values, name }, file, user?.id)
       }
       setEditorOpen(false)
@@ -159,12 +159,16 @@ export function DocumentsPage() {
     }
   }
 
+  const uploadButton = (
+    <Button onClick={openCreate}>Upload files</Button>
+  )
+
   return (
     <div>
       <PageHeader
         title="Documents"
         description="Internal files stored privately in Supabase Storage."
-        actions={<Button onClick={openCreate}>Upload files</Button>}
+        actions={uploadButton}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -203,11 +207,6 @@ export function DocumentsPage() {
           Loading documents…
         </Panel>
       ) : documents.length === 0 ? (
-        <EmptyState
-          title="No documents yet"
-          description="Upload proposals, contracts, or briefs and link them to a client or project."
-          action={<Button onClick={openCreate}>Upload files</Button>}
-        />
         search.trim() ? (
           <EmptyState
             title="No matching documents"
@@ -222,7 +221,7 @@ export function DocumentsPage() {
           <EmptyState
             title="No documents yet"
             description="Upload proposals, contracts, or briefs and link them to a client or project."
-            action={<Button onClick={openCreate}>Upload document</Button>}
+            action={uploadButton}
           />
         )
       ) : (
