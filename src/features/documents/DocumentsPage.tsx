@@ -96,11 +96,15 @@ export function DocumentsPage() {
     setEditorOpen(true)
   }
 
-  const handleUpload = async (values: DocumentMetaValues, file: File) => {
+  const handleUpload = async (values: DocumentMetaValues, files: File[]) => {
     setSubmitting(true)
     setFormError(null)
     try {
-      await uploadDocument(values, file, user?.id)
+      for (const file of files) {
+        const customName = values.name.trim()
+        const name = files.length === 1 && customName ? customName : file.name
+        await uploadDocument({ ...values, name }, file, user?.id)
+      }
       setEditorOpen(false)
       setEditing(null)
       await load()
@@ -155,12 +159,16 @@ export function DocumentsPage() {
     }
   }
 
+  const uploadButton = (
+    <Button onClick={openCreate}>Upload files</Button>
+  )
+
   return (
     <div>
       <PageHeader
         title="Documents"
         description="Internal files stored privately in Supabase Storage."
-        actions={<Button onClick={openCreate}>Upload document</Button>}
+        actions={uploadButton}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -213,7 +221,7 @@ export function DocumentsPage() {
           <EmptyState
             title="No documents yet"
             description="Upload proposals, contracts, or briefs and link them to a client or project."
-            action={<Button onClick={openCreate}>Upload document</Button>}
+            action={uploadButton}
           />
         )
       ) : (
@@ -275,7 +283,7 @@ export function DocumentsPage() {
 
       <Modal
         open={editorOpen}
-        title={editing ? 'Edit document' : 'Upload document'}
+        title={editing ? 'Edit document' : 'Upload files'}
         onClose={() => {
           if (!submitting) {
             setEditorOpen(false)
