@@ -7,13 +7,11 @@ export type AuthContextValue = {
   user: User | null
   profile: Profile | null
   loading: boolean
+  profileReady: boolean
   configured: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (
-    email: string,
-    password: string,
-  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)

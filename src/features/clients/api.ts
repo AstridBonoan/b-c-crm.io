@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
-import type { Client, ClientType } from '@/types/database'
+import type { Client, ClientStatus, ClientType } from '@/types/database'
 import {
   buildClientDisplayName,
   toNullable,
@@ -9,6 +9,7 @@ import {
 export type ClientFilters = {
   search: string
   clientType: 'all' | ClientType
+  status: 'all' | ClientStatus
 }
 
 export async function listClients(filters: ClientFilters): Promise<Client[]> {
@@ -17,6 +18,10 @@ export async function listClients(filters: ClientFilters): Promise<Client[]> {
 
   if (filters.clientType !== 'all') {
     query = query.eq('client_type', filters.clientType)
+  }
+
+  if (filters.status !== 'all') {
+    query = query.eq('client_status', filters.status)
   }
 
   const search = filters.search.trim()
@@ -35,6 +40,7 @@ function toPayload(values: ClientFormValues, userId: string | undefined) {
   const name = buildClientDisplayName(values)
   return {
     client_type: values.client_type,
+    client_status: values.client_status,
     name,
     first_name:
       values.client_type === 'individual' ? toNullable(values.first_name) : null,
@@ -75,6 +81,7 @@ export async function updateClient(
     .from('clients')
     .update({
       client_type: payload.client_type,
+      client_status: payload.client_status,
       name: payload.name,
       first_name: payload.first_name,
       last_name: payload.last_name,
@@ -86,6 +93,22 @@ export async function updateClient(
       location: payload.location,
       notes: payload.notes,
     })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function setClientStatus(
+  id: string,
+  status: ClientStatus,
+): Promise<Client> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('clients')
+    .update({ client_status: status })
     .eq('id', id)
     .select('*')
     .single()

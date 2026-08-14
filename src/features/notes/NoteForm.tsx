@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Client, Contact, Customer, Deal, Lead, Note, Project } from '@/types/database'
+import type { Client, Contact, Deal, Lead, Note, Project } from '@/types/database'
 import {
   listContactsForClient,
-  listCustomersForClient,
   listDealsForClient,
   listLeadsForClient,
   listProjectsForClient,
@@ -27,7 +26,6 @@ const emptyValues: NoteFormValues = {
   contact_id: '',
   lead_id: '',
   deal_id: '',
-  customer_id: '',
   project_id: '',
 }
 
@@ -38,7 +36,6 @@ function toFormValues(note: Note): NoteFormValues {
     contact_id: note.contact_id ?? '',
     lead_id: note.lead_id ?? '',
     deal_id: note.deal_id ?? '',
-    customer_id: note.customer_id ?? '',
     project_id: note.project_id ?? '',
   }
 }
@@ -63,7 +60,6 @@ export function NoteForm({
     Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'>[]
   >([])
   const [deals, setDeals] = useState<Pick<Deal, 'id' | 'name'>[]>([])
-  const [customers, setCustomers] = useState<Pick<Customer, 'id' | 'status'>[]>([])
   const [projects, setProjects] = useState<Pick<Project, 'id' | 'name'>[]>([])
   const [relationError, setRelationError] = useState<string | null>(null)
 
@@ -90,12 +86,10 @@ export function NoteForm({
       setContacts([])
       setLeads([])
       setDeals([])
-      setCustomers([])
       setProjects([])
       setValue('contact_id', '')
       setValue('lead_id', '')
       setValue('deal_id', '')
-      setValue('customer_id', '')
       setValue('project_id', '')
       return
     }
@@ -105,21 +99,19 @@ export function NoteForm({
       listContactsForClient(clientId),
       listLeadsForClient(clientId),
       listDealsForClient(clientId),
-      listCustomersForClient(clientId),
       listProjectsForClient(clientId),
     ])
-      .then(([nextContacts, nextLeads, nextDeals, nextCustomers, nextProjects]) => {
+      .then(([nextContacts, nextLeads, nextDeals, nextProjects]) => {
         if (!active) return
         setContacts(nextContacts)
         setLeads(nextLeads)
         setDeals(nextDeals)
-        setCustomers(nextCustomers)
         setProjects(nextProjects)
         setRelationError(null)
 
         const sameClient = initial?.client_id === clientId
         const keepOrClear = (
-          field: 'contact_id' | 'lead_id' | 'deal_id' | 'customer_id' | 'project_id',
+          field: 'contact_id' | 'lead_id' | 'deal_id' | 'project_id',
           preferred: string | null | undefined,
           ids: string[],
         ) => {
@@ -146,11 +138,6 @@ export function NoteForm({
           nextDeals.map((item) => item.id),
         )
         keepOrClear(
-          'customer_id',
-          sameClient ? initial?.customer_id : undefined,
-          nextCustomers.map((item) => item.id),
-        )
-        keepOrClear(
           'project_id',
           sameClient ? initial?.project_id : undefined,
           nextProjects.map((item) => item.id),
@@ -161,7 +148,6 @@ export function NoteForm({
         setContacts([])
         setLeads([])
         setDeals([])
-        setCustomers([])
         setProjects([])
         setRelationError(err instanceof Error ? err.message : 'Failed to load related records')
       })
@@ -264,24 +250,6 @@ export function NoteForm({
           </select>
         </div>
         <div>
-          <label htmlFor="customer_id" className="block text-sm font-medium text-ink">
-            Customer
-          </label>
-          <select
-            id="customer_id"
-            className="input-field mt-1 rounded-md"
-            disabled={!clientId}
-            {...register('customer_id')}
-          >
-            <option value="">None</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                Customer ({customer.status})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sm:col-span-2">
           <label htmlFor="project_id" className="block text-sm font-medium text-ink">
             Project
           </label>

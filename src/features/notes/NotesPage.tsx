@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { NoteForm } from '@/features/notes/NoteForm'
 import {
   createNote,
@@ -32,7 +33,6 @@ function relatedLabel(note: NoteWithRelations): string {
     parts.push(note.leads.service_interested || note.leads.source || 'Lead')
   }
   if (note.deals?.name) parts.push(note.deals.name)
-  if (note.customers) parts.push(`Customer (${note.customers.status})`)
   if (note.projects?.name) parts.push(note.projects.name)
   return parts.length > 0 ? parts.join(' · ') : '—'
 }
@@ -43,7 +43,7 @@ export function NotesPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Note | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -174,11 +174,23 @@ export function NotesPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading notes…</Panel>
       ) : notes.length === 0 ? (
-        <EmptyState
-          title="No notes yet"
-          description="Capture context the team should remember — preferences, next steps, or caveats."
-          action={<Button onClick={openCreate}>Add note</Button>}
-        />
+        search.trim() ? (
+          <EmptyState
+            title="No matching notes"
+            description="Try clearing search to see all notes."
+            action={
+              <Button variant="secondary" onClick={() => setSearch('')}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No notes yet"
+            description="Capture context the team should remember — preferences, next steps, or caveats."
+            action={<Button onClick={openCreate}>Add note</Button>}
+          />
+        )
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (

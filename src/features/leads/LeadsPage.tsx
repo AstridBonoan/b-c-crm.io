@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
@@ -7,69 +8,159 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { LeadForm } from '@/features/leads/LeadForm'
+import { ConvertLeadForm } from '@/features/leads/ConvertLeadForm'
 import {
+  convertLeadToClient,
   createLead,
   deleteLead,
-  listClientOptions,
   listLeads,
   updateLead,
   type LeadWithRelations,
 } from '@/features/leads/api'
 import {
   formatMoney,
-  LEAD_STATUSES,
   statusLabel,
   type LeadFormValues,
 } from '@/features/leads/schemas'
-import type { Client, Lead, LeadStatus } from '@/types/database'
+import type { ClientFormValues } from '@/features/clients/schemas'
+import type { Lead, LeadStatus } from '@/types/database'
 
 function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'danger' {
-  if (status === 'converted' || status === 'qualified') return 'success'
-  if (status === 'lost' || status === 'unqualified') return 'danger'
+  if (status === 'converted') return 'success'
+  if (status === 'lost') return 'danger'
+  if (status === 'following_up') return 'brand'
   if (status === 'new' || status === 'contacted') return 'brand'
   return 'neutral'
 }
 
+function leadTitle(lead: LeadWithRelations): string {
+  return (
+    lead.company_name ||
+    lead.clients?.name ||
+    lead.service_interested ||
+    lead.source ||
+    'New lead'
+  )
+}
+
+type LeadTableProps = {
+  title: string
+  leads: LeadWithRelations[]
+  showTrash?: boolean
+  onConvert: (lead: LeadWithRelations) => void
+  onEdit: (lead: Lead) => void
+  onDelete?: (lead: LeadWithRelations) => void
+}
+
+function LeadTable({ title, leads, showTrash, onConvert, onEdit, onDelete }: LeadTableProps) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-sm font-semibold text-ink">
+        {title}
+        <span className="ml-2 font-normal text-ink-muted">({leads.length})</span>
+      </h2>
+      <Panel className="overflow-x-auto">
+        {leads.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-ink-muted">No leads in this list.</p>
+        ) : (
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Lead</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Source</th>
+                <th className="px-4 py-3 font-semibold">Service</th>
+                <th className="px-4 py-3 font-semibold">Est. value</th>
+                <th className="px-4 py-3 font-semibold">Follow-up</th>
+                <th className="px-4 py-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((lead) => (
+                <tr
+                  key={lead.id}
+                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-surface-muted/70"
+                >
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-ink">{leadTitle(lead)}</p>
+                    <p className="text-xs text-ink-muted">
+                      {lead.clients?.name ? `Client: ${lead.clients.name}` : 'Not a client yet'}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge tone={statusTone(lead.status)}>{statusLabel(lead.status)}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">{lead.source ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-muted">{lead.service_interested ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-muted">{formatMoney(lead.estimated_value)}</td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {lead.next_follow_up_at ? lead.next_follow_up_at.slice(0, 10) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {lead.status !== 'converted' ? (
+                        <Button variant="secondary" size="sm" onClick={() => onConvert(lead)}>
+                          Convert
+                        </Button>
+                      ) : null}
+                      <Button variant="secondary" size="sm" onClick={() => onEdit(lead)}>
+                        Edit
+                      </Button>
+                      {showTrash && onDelete ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-lg leading-none text-danger hover:bg-danger-soft"
+                          aria-label={`Delete ${leadTitle(lead)} for good`}
+                          title="Delete for good"
+                          onClick={() => onDelete(lead)}
+                        >
+                          🗑️
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Panel>
+    </section>
+  )
+}
+
 export function LeadsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [leads, setLeads] = useState<LeadWithRelations[]>([])
-  const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<LeadStatus | 'all'>('all')
-  const [clientId, setClientId] = useState<string | 'all'>('all')
+  const [search, setSearch] = useSearchQuery()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Lead | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<LeadWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
-
-  const loadClients = useCallback(async () => {
-    const data = await listClientOptions()
-    setClients(data)
-  }, [])
+  const [converting, setConverting] = useState<LeadWithRelations | null>(null)
+  const [convertBusy, setConvertBusy] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listLeads({ search, status, clientId })
+      const data = await listLeads({ search, status: 'all', clientId: 'all' })
       setLeads(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load leads')
     } finally {
       setLoading(false)
     }
-  }, [search, status, clientId])
-
-  useEffect(() => {
-    void loadClients().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load clients')
-    })
-  }, [loadClients])
+  }, [search])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -77,6 +168,19 @@ export function LeadsPage() {
     }, 250)
     return () => window.clearTimeout(handle)
   }, [load])
+
+  const contactedLeads = useMemo(
+    () => leads.filter((lead) => lead.status === 'contacted'),
+    [leads],
+  )
+  const followingUpLeads = useMemo(
+    () => leads.filter((lead) => lead.status === 'following_up'),
+    [leads],
+  )
+  const lostLeads = useMemo(
+    () => leads.filter((lead) => lead.status === 'lost'),
+    [leads],
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -95,7 +199,7 @@ export function LeadsPage() {
     setFormError(null)
     try {
       if (editing) {
-        await updateLead(editing.id, values)
+        await updateLead(editing.id, values, editing)
       } else {
         await createLead(values, user?.id)
       }
@@ -124,46 +228,45 @@ export function LeadsPage() {
     }
   }
 
+  const openConvert = (lead: LeadWithRelations) => {
+    setConverting(lead)
+    setConvertError(null)
+  }
+
+  const handleConvert = async (values: ClientFormValues) => {
+    if (!converting) return
+    setConvertBusy(true)
+    setConvertError(null)
+    try {
+      const result = await convertLeadToClient(converting, values, user?.id)
+      setConverting(null)
+      await load()
+      navigate(`/clients?status=active&q=${encodeURIComponent(result.client.name)}`)
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : 'Failed to convert lead')
+    } finally {
+      setConvertBusy(false)
+    }
+  }
+
+  const hasAnyTableRows = leads.length > 0
+
   return (
     <div>
       <PageHeader
         title="Leads"
-        description="Track potential customers before they become deals or customers."
+        description="Capture interest first. When they’re ready, convert the lead into a client."
         actions={<Button onClick={openCreate}>Add lead</Button>}
       />
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="mb-4">
         <input
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search source, service, notes…"
+          placeholder="Search company, source, service, notes…"
           className="input-field rounded-md lg:max-w-sm"
         />
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value as LeadStatus | 'all')}
-          className="input-field rounded-md lg:w-auto"
-        >
-          <option value="all">All statuses</option>
-          {LEAD_STATUSES.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={clientId}
-          onChange={(event) => setClientId(event.target.value as string | 'all')}
-          className="input-field rounded-md lg:w-auto"
-        >
-          <option value="all">All clients</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       {error ? (
@@ -174,69 +277,65 @@ export function LeadsPage() {
 
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading leads…</Panel>
-      ) : leads.length === 0 ? (
-        <EmptyState
-          title="No leads yet"
-          description="Capture inbound interest and follow-ups here before converting to a deal or customer."
-          action={<Button onClick={openCreate}>Add lead</Button>}
-        />
+      ) : !hasAnyTableRows ? (
+        search.trim() ? (
+          <EmptyState
+            title="No matching leads"
+            description="Try clearing search to see all leads."
+            action={
+              <Button variant="secondary" onClick={() => setSearch('')}>
+                Clear search
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No leads yet"
+            description="Capture inbound interest here, then convert a lead into a client."
+            action={<Button onClick={openCreate}>Add lead</Button>}
+          />
+        )
       ) : (
-        <Panel className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Client / Contact</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Source</th>
-                <th className="px-4 py-3 font-semibold">Service</th>
-                <th className="px-4 py-3 font-semibold">Est. value</th>
-                <th className="px-4 py-3 font-semibold">Follow-up</th>
-                <th className="px-4 py-3 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => (
-                <tr
-                  key={lead.id}
-                  className="border-b border-line/70 transition-colors last:border-0 hover:bg-surface-muted/70"
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{lead.clients?.name ?? 'Unlinked lead'}</p>
-                    <p className="text-xs text-ink-muted">
-                      {lead.contacts
-                        ? `${lead.contacts.first_name} ${lead.contacts.last_name}`
-                        : 'No contact'}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={statusTone(lead.status)}>{statusLabel(lead.status)}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-ink-muted">{lead.source ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-muted">{lead.service_interested ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-muted">{formatMoney(lead.estimated_value)}</td>
-                  <td className="px-4 py-3 text-ink-muted">
-                    {lead.next_follow_up_at ? lead.next_follow_up_at.slice(0, 10) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => openEdit(lead)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-danger hover:bg-danger-soft"
-                        onClick={() => setDeleting(lead)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
+        <>
+          <LeadTable
+            title="All leads"
+            leads={leads}
+            showTrash
+            onConvert={openConvert}
+            onEdit={openEdit}
+            onDelete={setDeleting}
+          />
+          {contactedLeads.length > 0 ? (
+            <LeadTable
+              title="Contacted"
+              leads={contactedLeads}
+              showTrash
+              onConvert={openConvert}
+              onEdit={openEdit}
+              onDelete={setDeleting}
+            />
+          ) : null}
+          {followingUpLeads.length > 0 ? (
+            <LeadTable
+              title="Following Up"
+              leads={followingUpLeads}
+              showTrash
+              onConvert={openConvert}
+              onEdit={openEdit}
+              onDelete={setDeleting}
+            />
+          ) : null}
+          {lostLeads.length > 0 ? (
+            <LeadTable
+              title="Lost"
+              leads={lostLeads}
+              showTrash
+              onConvert={openConvert}
+              onEdit={openEdit}
+              onDelete={setDeleting}
+            />
+          ) : null}
+        </>
       )}
 
       <Modal
@@ -251,7 +350,11 @@ export function LeadsPage() {
       >
         <LeadForm
           initial={editing}
-          clients={clients}
+          linkedClientName={
+            editing
+              ? leads.find((lead) => lead.id === editing.id)?.clients?.name ?? null
+              : null
+          }
           submitting={submitting}
           formError={formError}
           onSubmit={handleSubmit}
@@ -264,10 +367,36 @@ export function LeadsPage() {
         />
       </Modal>
 
+      <Modal
+        open={Boolean(converting)}
+        title="Convert lead to client"
+        onClose={() => {
+          if (!convertBusy) {
+            setConverting(null)
+            setConvertError(null)
+          }
+        }}
+      >
+        {converting ? (
+          <ConvertLeadForm
+            lead={converting}
+            submitting={convertBusy}
+            formError={convertError}
+            onSubmit={handleConvert}
+            onCancel={() => {
+              if (!convertBusy) {
+                setConverting(null)
+                setConvertError(null)
+              }
+            }}
+          />
+        ) : null}
+      </Modal>
+
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Delete lead"
-        message={`Delete this lead${deleting?.clients?.name ? ` for “${deleting.clients.name}”` : ''}?`}
+        title="Delete lead for good"
+        message={`Permanently delete “${deleting ? leadTitle(deleting) : 'this lead'}”? This cannot be undone.`}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={() => void handleDelete()}

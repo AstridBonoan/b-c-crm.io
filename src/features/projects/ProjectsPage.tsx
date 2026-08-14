@@ -8,14 +8,14 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ProjectForm } from '@/features/projects/ProjectForm'
 import {
   createProject,
   deleteProject,
-  listCustomerOptions,
+  listClientOptions,
   listProjects,
   updateProject,
-  type CustomerOption,
   type ProjectWithRelations,
 } from '@/features/projects/api'
 import {
@@ -24,7 +24,7 @@ import {
   statusLabel,
   type ProjectFormValues,
 } from '@/features/projects/schemas'
-import type { Project, ProjectStatus } from '@/types/database'
+import type { Client, Project, ProjectStatus } from '@/types/database'
 
 function statusTone(status: ProjectStatus): 'neutral' | 'brand' | 'success' | 'danger' {
   if (status === 'completed') return 'success'
@@ -36,10 +36,12 @@ function statusTone(status: ProjectStatus): 'neutral' | 'brand' | 'success' | 'd
 export function ProjectsPage() {
   const { user } = useAuth()
   const [projects, setProjects] = useState<ProjectWithRelations[]>([])
-  const [customers, setCustomers] = useState<CustomerOption[]>([])
+  const [clients, setClients] = useState<
+    Pick<Client, 'id' | 'name' | 'client_type' | 'client_status'>[]
+  >([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [status, setStatus] = useState<ProjectStatus | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Project | null>(null)
@@ -48,9 +50,9 @@ export function ProjectsPage() {
   const [deleting, setDeleting] = useState<ProjectWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
-  const loadCustomers = useCallback(async () => {
-    const data = await listCustomerOptions()
-    setCustomers(data)
+  const loadClients = useCallback(async () => {
+    const data = await listClientOptions()
+    setClients(data)
   }, [])
 
   const load = useCallback(async () => {
@@ -67,10 +69,10 @@ export function ProjectsPage() {
   }, [search, status])
 
   useEffect(() => {
-    void loadCustomers().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load customers')
+    void loadClients().catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : 'Failed to load clients')
     })
-  }, [loadCustomers])
+  }, [loadClients])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -105,14 +107,14 @@ export function ProjectsPage() {
     setEditorOpen(true)
   }
 
-  const handleSubmit = async (values: ProjectFormValues, clientId: string) => {
+  const handleSubmit = async (values: ProjectFormValues) => {
     setSubmitting(true)
     setFormError(null)
     try {
       if (editing) {
-        await updateProject(editing.id, values, clientId)
+        await updateProject(editing.id, values)
       } else {
-        await createProject(values, clientId, user?.id)
+        await createProject(values, user?.id)
       }
       setEditorOpen(false)
       setEditing(null)
@@ -143,7 +145,7 @@ export function ProjectsPage() {
     <div>
       <PageHeader
         title="Projects"
-        description="Active and completed customer work. Completed projects stay as historical records."
+        description="Active and completed client work. Completed projects stay as historical records."
         actions={<Button onClick={openCreate}>Add project</Button>}
       />
 
@@ -207,33 +209,51 @@ export function ProjectsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading projects…</Panel>
       ) : projects.length === 0 ? (
-        <EmptyState
-          title="No projects yet"
-          description={
-            customers.length === 0
-              ? 'Create a customer first, then add projects for their work.'
-              : 'Add a project to track delivery from planning through completion.'
-          }
-          action={
-            customers.length === 0 ? (
-              <Link
-                to="/customers"
-                className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+        search.trim() || status !== 'all' ? (
+          <EmptyState
+            title="No matching projects"
+            description="Try clearing search or filters to see all projects."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStatus('all')
+                }}
               >
-                Go to Customers
-              </Link>
-            ) : (
-              <Button onClick={openCreate}>Add project</Button>
-            )
-          }
-        />
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No projects yet"
+            description={
+              clients.length === 0
+                ? 'Create a client first, then add projects for their work.'
+                : 'Add a project to track delivery from planning through completion.'
+            }
+            action={
+              clients.length === 0 ? (
+                <Link
+                  to="/clients"
+                  className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+                >
+                  Go to Clients
+                </Link>
+              ) : (
+                <Button onClick={openCreate}>Add project</Button>
+              )
+            }
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-line bg-surface-muted text-[11px] tracking-[0.1em] text-ink-muted uppercase">
               <tr>
                 <th className="px-4 py-3 font-semibold">Project</th>
-                <th className="px-4 py-3 font-semibold">Customer</th>
+                <th className="px-4 py-3 font-semibold">Client</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Progress</th>
                 <th className="px-4 py-3 font-semibold">Value</th>
@@ -313,7 +333,7 @@ export function ProjectsPage() {
       >
         <ProjectForm
           initial={editing}
-          customers={customers}
+          clients={clients}
           submitting={submitting}
           formError={formError}
           onSubmit={handleSubmit}

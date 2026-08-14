@@ -1,8 +1,8 @@
 # B&C Software & Web — Internal CRM
 
-Internal CRM for **B&C Software & Web** employees. It manages leads, sales opportunities, customers, projects, tasks, and relationship history.
+Internal CRM for **B&C Software & Web** employees. It manages leads, clients, sales opportunities, projects, tasks, and relationship history.
 
-This is **not** a customer-facing portal. Customers do not log in.
+This is **not** a customer-facing portal. External clients do not log in.
 
 Live site (GitHub Pages): https://astridbonoan.github.io/b-c-crm.io/
 
@@ -63,9 +63,29 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
-3. Run the SQL in `supabase/migrations/20260324120000_initial_schema.sql` in the Supabase SQL editor.
-4. Create employee users in **Authentication → Users** (or invite). Profiles are created automatically via trigger.
-5. Optionally set `role` on `profiles` (`admin`, `manager`, `sales`, `developer`).
+3. Apply **all** SQL files in `supabase/migrations/` in filename order in the Supabase SQL editor (or via Supabase CLI).
+4. Confirm you and Charlie appear in `employee_allowlist` (seeded from active profiles after the allowlist migration):
+
+```sql
+select email, is_active, role from public.profiles order by created_at;
+select * from public.employee_allowlist;
+```
+
+5. If either founder is missing from the allowlist, add them (lowercase email):
+
+```sql
+insert into public.employee_allowlist (email, note) values
+  ('you@example.com', 'Founder & CTO'),
+  ('charlie@example.com', 'Co-Founder & CMO')
+on conflict (email) do nothing;
+
+update public.profiles
+set is_active = true
+where lower(email) in ('you@example.com', 'charlie@example.com');
+```
+
+6. In Supabase **Authentication → Providers → Email**, turn **off** “Enable sign ups” so accounts cannot be created outside invite/admin flows.
+7. Create additional employees only via **Authentication → Users → Invite** (or Add user), then insert their email into `employee_allowlist` before they can become active.
 
 ### 3. Run
 
@@ -126,7 +146,6 @@ feature/contacts
 feature/leads
 feature/sales-pipeline
 feature/deals
-feature/customers
 feature/projects
 feature/tasks
 feature/activities
@@ -135,25 +154,26 @@ feature/documents
 feature/search-filtering
 feature/analytics
 feature/user-roles
+chore/product-readiness
 ```
 
 Workflow:
 
 ```text
-main → feature/<name> → develop/test → pull request → main → Pages deploy
+main → feature/<name> or chore/<name> → develop/test → pull request → main → Pages deploy
 ```
 
-Do not combine unrelated features in one branch.
+Do not combine unrelated features in one branch. Use a separate chore branch for product-readiness polish so feature PRs stay clean.
 
 ---
 
 ## Business flow
 
 ```text
-Lead → Sales Opportunity / Deal → Customer → Project → Completed Project
+Lead → Convert → Client (active) → Contact / Deal / Project → Delivery work
 ```
 
-Entities stay related through foreign keys. Top-level accounts are **clients** (organizations or individuals), not a generic “company-only” model.
+Entities stay related through foreign keys. Top-level accounts are **clients** (organizations or individuals) with status `prospect | active | inactive`.
 
 ---
 
@@ -165,7 +185,6 @@ src/
 ├── layouts/        # App shell (sidebar + header)
 ├── lib/            # Supabase client, env helpers
 ├── features/       # Feature modules (auth, dashboard, clients, …)
-├── pages/          # Thin route placeholders for upcoming modules
 ├── types/          # Shared TypeScript / DB types
 ├── App.tsx
 └── main.tsx
@@ -178,31 +197,28 @@ supabase/
 
 ## Current status
 
-Implemented:
+Implemented for internal founder use:
 
-- React + TypeScript + Tailwind
-- Supabase client + env configuration
-- Auth foundation (login, session, protected routes, sign out)
-- App layout with sidebar/header
-- Routing with module placeholders
-- **Clients module** (organizations + individuals, CRUD, search/filter)
-- **Contacts module** (people linked to clients)
-- **Leads module** (status tracking, client/contact links, follow-ups)
-- **Sales pipeline** (Kanban board for deals by stage)
-- **Deals module** (table view, filters, totals; shared with pipeline)
-- **Customers module** (converted clients, revenue, related counts)
-- **Projects module** (status, progress, active/completed tracking)
-- Initial normalized schema + RLS + private storage bucket
+- Auth (sign-in only), session, active-profile gate, employee email allowlist
+- Dashboard, clients (with status), contacts, leads (+ convert to client)
+- Pipeline / deals, projects, tasks, activities, notes, documents
+- Search, analytics, team profiles (CTO / CMO labels)
+- Initial schema + RLS + private storage bucket + allowlist migration
 - GitHub Actions build/validate + deploy to `gh-pages`
 - B&C brand theme with light/dark toggle
 
-Next: `feature/tasks`, then activities.
+See `PRODUCT_READINESS.md` for the founder smoke checklist (use `chore/product-readiness` for testing).
 
 ---
 
 ## Security notes
 
-- Only authenticated, **active** employees pass RLS (`profiles.is_active`).
-- Role-based write restrictions can be tightened on `feature/user-roles`.
-- Never put the Supabase **service role** key in frontend code or GitHub Pages secrets meant for `VITE_*` public env vars.
+- Public **Create account** UI is removed. Sign-in only.
+- Only emails in `public.employee_allowlist` may have `profiles.is_active = true`.
+- Existing active founders (you + Charlie) are seeded into the allowlist when the migration runs.
+- RLS still requires `profiles.is_active` via `is_active_employee()` for CRM data and storage.
+- Inactive or non-allowlisted sign-ins are rejected and signed out.
+- Profile emails cannot be changed from the CRM; activation of non-allowlisted emails is blocked in the database.
+- Never put the Supabase **service role** key in frontend code or GitHub Pages `VITE_*` secrets.
 - Documents bucket `crm-documents` is private; access is gated by storage policies.
+- Also disable Email sign-ups in the Supabase Auth dashboard (defense in depth).

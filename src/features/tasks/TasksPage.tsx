@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { TaskForm } from '@/features/tasks/TaskForm'
 import {
   createTask,
@@ -50,7 +51,7 @@ export function TasksPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
@@ -218,11 +219,30 @@ export function TasksPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading tasks…</Panel>
       ) : tasks.length === 0 ? (
-        <EmptyState
-          title="No tasks yet"
-          description="Create follow-ups like send proposal, schedule meeting, or check project progress."
-          action={<Button onClick={openCreate}>Add task</Button>}
-        />
+        search.trim() || status !== 'all' || priority !== 'all' ? (
+          <EmptyState
+            title="No matching tasks"
+            description="Try clearing search or filters to see all tasks."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStatus('all')
+                  setPriority('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No tasks yet"
+            description="Create follow-ups like send proposal, schedule meeting, or check project progress."
+            action={<Button onClick={openCreate}>Add task</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

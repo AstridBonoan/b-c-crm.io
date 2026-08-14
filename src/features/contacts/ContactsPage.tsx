@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ContactForm } from '@/features/contacts/ContactForm'
 import {
   createContact,
@@ -25,7 +26,7 @@ export function ContactsPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [clientId, setClientId] = useState<string | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Contact | null>(null)
@@ -150,26 +151,44 @@ export function ContactsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading contacts…</Panel>
       ) : contacts.length === 0 ? (
-        <EmptyState
-          title="No contacts yet"
-          description={
-            clients.length === 0
-              ? 'Add a client first, then create contacts for that account.'
-              : 'Add people linked to your clients to track conversations and deals.'
-          }
-          action={
-            clients.length === 0 ? (
-              <Link
-                to="/clients"
-                className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+        search.trim() || clientId !== 'all' ? (
+          <EmptyState
+            title="No matching contacts"
+            description="Try clearing search or filters to see all contacts."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setClientId('all')
+                }}
               >
-                Go to Clients
-              </Link>
-            ) : (
-              <Button onClick={openCreate}>Add contact</Button>
-            )
-          }
-        />
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No contacts yet"
+            description={
+              clients.length === 0
+                ? 'Add a client first, then create contacts for that account.'
+                : 'Add people linked to your clients to track conversations and deals.'
+            }
+            action={
+              clients.length === 0 ? (
+                <Link
+                  to="/clients"
+                  className="inline-flex items-center justify-center rounded-md bg-btn-primary-bg px-3.5 py-2 text-sm font-medium text-btn-primary-fg hover:bg-btn-primary-hover"
+                >
+                  Go to Clients
+                </Link>
+              ) : (
+                <Button onClick={openCreate}>Add contact</Button>
+              )
+            }
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

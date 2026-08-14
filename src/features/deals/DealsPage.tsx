@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { DealForm } from '@/features/pipeline/DealForm'
 import {
   createDeal,
@@ -38,7 +39,7 @@ export function DealsPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name' | 'client_type'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [stage, setStage] = useState<DealStage | 'all'>('all')
   const [clientId, setClientId] = useState<string | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
@@ -227,11 +228,30 @@ export function DealsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading deals…</Panel>
       ) : deals.length === 0 ? (
-        <EmptyState
-          title="No deals yet"
-          description="Create a deal to track an opportunity, or manage stages on the pipeline board."
-          action={<Button onClick={openCreate}>Add deal</Button>}
-        />
+        search.trim() || stage !== 'all' || clientId !== 'all' ? (
+          <EmptyState
+            title="No matching deals"
+            description="Try clearing search or filters to see all deals."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setStage('all')
+                  setClientId('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No deals yet"
+            description="Create a deal to track an opportunity, or manage stages on the pipeline board."
+            action={<Button onClick={openCreate}>Add deal</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

@@ -3,7 +3,6 @@ import type {
   Activity,
   Client,
   Contact,
-  Customer,
   Deal,
   Lead,
   Project,
@@ -22,7 +21,6 @@ export type ActivityWithRelations = Activity & {
   contacts: Pick<Contact, 'id' | 'first_name' | 'last_name'> | null
   leads: Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'> | null
   deals: Pick<Deal, 'id' | 'name'> | null
-  customers: Pick<Customer, 'id' | 'status'> | null
   projects: Pick<Project, 'id' | 'name'> | null
   tasks: Pick<Task, 'id' | 'title'> | null
 }
@@ -85,20 +83,6 @@ export async function listDealsForClient(
   return data ?? []
 }
 
-export async function listCustomersForClient(
-  clientId: string,
-): Promise<Pick<Customer, 'id' | 'status'>[]> {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('id, status')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
-
 export async function listProjectsForClient(
   clientId: string,
 ): Promise<Pick<Project, 'id' | 'name'>[]> {
@@ -134,7 +118,7 @@ export async function listActivities(
   let query = supabase
     .from('activities')
     .select(
-      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), customers(id, status), projects(id, name), tasks(id, title)',
+      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), projects(id, name), tasks(id, title)',
     )
     .order('occurred_at', { ascending: false })
 
@@ -162,7 +146,7 @@ function toPayload(values: ActivityFormValues, userId: string | undefined) {
     contact_id: toNullableUuid(values.contact_id),
     lead_id: toNullableUuid(values.lead_id),
     deal_id: toNullableUuid(values.deal_id),
-    customer_id: toNullableUuid(values.customer_id),
+    customer_id: null,
     project_id: toNullableUuid(values.project_id),
     task_id: toNullableUuid(values.task_id),
     created_by: userId ?? null,

@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { loginSchema, type LoginFormValues } from '@/features/auth/schemas'
 import { useAuth } from '@/features/auth/useAuth'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
@@ -9,17 +8,18 @@ import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { useTheme } from '@/features/theme/useTheme'
+import { useEffect, useState } from 'react'
 
-type Mode = 'signin' | 'signup'
-
-export function LoginPage() {
-  const { signIn, signUp, user, loading, configured } = useAuth()
-  const { theme } = useTheme()
+function SignInForm({
+  configured,
+  banner,
+}: {
+  configured: boolean
+  banner: string | null
+}) {
+  const { signIn } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const [mode, setMode] = useState<Mode>('signin')
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
   const {
     register,
@@ -27,48 +27,103 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   })
-
-  if (loading) {
-    return <LoadingScreen label="Loading…" />
-  }
-
-  if (user) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/'
-    return <Navigate to={from} replace />
-  }
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-    setInfoMessage(null)
-
-    if (mode === 'signin') {
-      const result = await signIn(values.email, values.password)
-      if (result.error) {
-        setSubmitError(result.error)
-        return
-      }
-      navigate('/', { replace: true })
-      return
-    }
-
-    const result = await signUp(values.email, values.password)
+    const result = await signIn(values.email, values.password)
     if (result.error) {
       setSubmitError(result.error)
       return
     }
-
-    if (result.needsEmailConfirmation) {
-      setInfoMessage(
-        'Account created, but Supabase requires email confirmation before sign-in. In the Supabase dashboard go to Authentication → Providers → Email and turn off “Confirm email”, then sign in. Or confirm via the email link.',
-      )
-      setMode('signin')
-      return
-    }
-
     navigate('/', { replace: true })
   })
+
+  return (
+    <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-ink">
+          Work email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="username"
+          className="input-field mt-1 rounded-md"
+          {...register('email')}
+        />
+        {errors.email ? <p className="mt-1 text-xs text-danger">{errors.email.message}</p> : null}
+      </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-ink">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          className="input-field mt-1 rounded-md"
+          {...register('password')}
+        />
+        {errors.password ? (
+          <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+        ) : null}
+      </div>
+
+      {!configured ? (
+        <div className="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          Supabase environment variables are not configured yet. Copy{' '}
+          <code className="font-mono text-xs">.env.example</code> to{' '}
+          <code className="font-mono text-xs">.env</code> and set your project credentials.
+        </div>
+      ) : null}
+
+      {banner ? (
+        <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">{banner}</p>
+      ) : null}
+
+      {submitError ? (
+        <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
+          {submitError}
+        </p>
+      ) : null}
+
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting ? 'Signing in…' : 'Sign in'}
+      </Button>
+    </form>
+  )
+}
+
+export function LoginPage() {
+  const { user, profile, loading, profileReady, configured, signOut } = useAuth()
+  const { theme } = useTheme()
+  const [accessBanner, setAccessBanner] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (loading || !profileReady || !user) return
+    if (profile?.is_active) return
+
+    const message = profile
+      ? 'This account is not authorized for the CRM. Access is limited to allowlisted B&C employees.'
+      : 'No employee profile found for this account. Ask a founder to add your email to the allowlist.'
+
+    setAccessBanner(message)
+    void signOut()
+  }, [loading, profileReady, user, profile, signOut])
+
+  if (loading || (user && !profileReady)) {
+    return <LoadingScreen label="Loading…" />
+  }
+
+  if (user && profile?.is_active) {
+    return <Navigate to="/" replace />
+  }
 
   const atmosphereLogoVariant = theme === 'dark' ? 'dark' : 'light'
 
@@ -109,7 +164,7 @@ export function LoginPage() {
             theme === 'dark' ? 'text-slate-400' : 'text-ink-muted'
           }`}
         >
-          Employee access only. Customers do not log in here.
+          Invite-only. Public signup is disabled.
         </p>
       </section>
 
@@ -119,112 +174,13 @@ export function LoginPage() {
             <BrandLogo className="mb-4 h-16 w-auto max-w-[220px] object-contain" />
             <p className="text-xs tracking-[0.18em] text-teal uppercase">Internal CRM</p>
           </div>
-          <h2 className="mt-2 text-xl font-semibold text-ink lg:mt-0">
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
-          </h2>
+          <h2 className="mt-2 text-xl font-semibold text-ink lg:mt-0">Sign in</h2>
           <p className="mt-2 text-sm text-ink-muted">
-            {mode === 'signin'
-              ? 'Use your B&C employee email and password.'
-              : 'Set up your employee account for this internal workspace.'}
+            Use your allowlisted B&amp;C employee email and password. New accounts are not created
+            here — founders add people in Supabase.
           </p>
 
-          {!configured && (
-            <div className="mt-4 border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-              Supabase environment variables are not configured yet. Copy{' '}
-              <code className="font-mono text-xs">.env.example</code> to{' '}
-              <code className="font-mono text-xs">.env</code> and set your project credentials.
-            </div>
-          )}
-
-          <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-ink">
-                Work email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="username"
-                className="input-field mt-1 rounded-md"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-danger">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-ink">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                className="input-field mt-1 rounded-md"
-                {...register('password')}
-              />
-              {errors.password && (
-                <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
-              )}
-            </div>
-
-            {submitError && (
-              <p className="border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
-                {submitError}
-              </p>
-            )}
-
-            {infoMessage && (
-              <p className="border border-line bg-surface-muted px-3 py-2 text-sm text-ink">
-                {infoMessage}
-              </p>
-            )}
-
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting
-                ? mode === 'signin'
-                  ? 'Signing in…'
-                  : 'Creating account…'
-                : mode === 'signin'
-                  ? 'Sign in'
-                  : 'Create account'}
-            </Button>
-          </form>
-
-          <p className="mt-5 text-center text-sm text-ink-muted">
-            {mode === 'signin' ? (
-              <>
-                First time here?{' '}
-                <button
-                  type="button"
-                  className="font-medium text-teal hover:underline"
-                  onClick={() => {
-                    setMode('signup')
-                    setSubmitError(null)
-                    setInfoMessage(null)
-                  }}
-                >
-                  Create your account
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  className="font-medium text-teal hover:underline"
-                  onClick={() => {
-                    setMode('signin')
-                    setSubmitError(null)
-                    setInfoMessage(null)
-                  }}
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </p>
+          <SignInForm configured={configured} banner={accessBanner} />
         </div>
       </section>
     </div>

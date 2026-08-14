@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ActivityForm } from '@/features/activities/ActivityForm'
 import {
   createActivity,
@@ -36,7 +37,6 @@ function relatedLabel(activity: ActivityWithRelations): string {
   if (activity.leads) {
     return activity.leads.service_interested || activity.leads.source || 'Lead'
   }
-  if (activity.customers) return `Customer (${activity.customers.status})`
   return '—'
 }
 
@@ -46,7 +46,7 @@ export function ActivitiesPage() {
   const [clients, setClients] = useState<Pick<Client, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [type, setType] = useState<ActivityType | 'all'>('all')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
@@ -205,11 +205,29 @@ export function ActivitiesPage() {
           Loading activities…
         </Panel>
       ) : activities.length === 0 ? (
-        <EmptyState
-          title="No activities yet"
-          description="Log calls, emails, meetings, and demos so the team has a shared history."
-          action={<Button onClick={openCreate}>Log activity</Button>}
-        />
+        search.trim() || type !== 'all' ? (
+          <EmptyState
+            title="No matching activities"
+            description="Try clearing search or filters to see all activities."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setType('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No activities yet"
+            description="Log calls, emails, meetings, and demos so the team has a shared history."
+            action={<Button onClick={openCreate}>Log activity</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
