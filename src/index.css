@@ -200,7 +200,8 @@ html[data-theme='dark'] {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* none — a retained translateY(0) still creates a fixed-position containing block */
+    transform: none;
   }
 }
 

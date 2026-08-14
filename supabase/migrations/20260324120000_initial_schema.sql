@@ -4,13 +4,13 @@
 
 create extension if not exists "pgcrypto";
 
-create type public.user_role as enum ('admin', 'manager', 'sales', 'developer');
+create type public.user_role as enum ('founder_cto', 'founder_cmo');
 create type public.client_type as enum ('individual', 'organization');
+create type public.client_status as enum ('prospect', 'active', 'inactive');
 create type public.lead_status as enum (
   'new',
   'contacted',
-  'qualified',
-  'unqualified',
+  'following_up',
   'converted',
   'lost'
 );
@@ -44,7 +44,7 @@ create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null unique,
   full_name text,
-  role public.user_role not null default 'sales',
+  role public.user_role not null default 'founder_cto',
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -53,6 +53,7 @@ create table public.profiles (
 create table public.clients (
   id uuid primary key default gen_random_uuid(),
   client_type public.client_type not null default 'organization',
+  client_status public.client_status not null default 'prospect',
   name text not null,
   first_name text,
   last_name text,
@@ -86,6 +87,7 @@ create table public.leads (
   id uuid primary key default gen_random_uuid(),
   client_id uuid references public.clients (id) on delete set null,
   contact_id uuid references public.contacts (id) on delete set null,
+  company_name text,
   source text,
   service_interested text,
   status public.lead_status not null default 'new',
@@ -138,7 +140,7 @@ create table public.customers (
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  customer_id uuid not null references public.customers (id) on delete restrict,
+  customer_id uuid references public.customers (id) on delete restrict,
   client_id uuid not null references public.clients (id) on delete restrict,
   deal_id uuid references public.deals (id) on delete set null,
   project_type text,
@@ -301,11 +303,16 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name)
+  insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+    case
+      when coalesce(new.raw_user_meta_data ->> 'role', '') = 'founder_cmo'
+        then 'founder_cmo'::public.user_role
+      else 'founder_cto'::public.user_role
+    end
   );
   return new;
 end;
@@ -342,19 +349,18 @@ alter table public.activities enable row level security;
 alter table public.notes enable row level security;
 alter table public.documents enable row level security;
 
--- Authenticated active employees can read CRM data.
--- Role-based write restrictions can be tightened on feature/user-roles.
+-- Soft founder roles: equal access; titles mark primary lanes only.
 
 create policy "Employees can read profiles"
 on public.profiles for select
 to authenticated
 using (public.is_active_employee());
 
-create policy "Employees can update own profile basics"
+create policy "Employees can update profiles"
 on public.profiles for update
 to authenticated
-using (auth.uid() = id and public.is_active_employee())
-with check (auth.uid() = id and public.is_active_employee());
+using (public.is_active_employee())
+with check (public.is_active_employee());
 
 create policy "Employees manage clients"
 on public.clients for all

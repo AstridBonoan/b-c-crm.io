@@ -10,6 +10,7 @@ import {
   type DealFormValues,
 } from '@/features/pipeline/schemas'
 import type { LeadWithRelations } from '@/features/leads/api'
+import { setClientStatus } from '@/features/clients/api'
 
 export type DealWithRelations = Deal & {
   clients: Pick<Client, 'id' | 'name' | 'client_type'> | null
@@ -18,7 +19,14 @@ export type DealWithRelations = Deal & {
 
 export type LeadOption = Pick<
   Lead,
-  'id' | 'client_id' | 'contact_id' | 'source' | 'service_interested' | 'status' | 'estimated_value'
+  | 'id'
+  | 'client_id'
+  | 'contact_id'
+  | 'company_name'
+  | 'source'
+  | 'service_interested'
+  | 'status'
+  | 'estimated_value'
 > & {
   clients: Pick<Client, 'id' | 'name'> | null
 }
@@ -52,7 +60,9 @@ export async function listLeadOptions(): Promise<LeadOption[]> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('leads')
-    .select('id, client_id, contact_id, source, service_interested, status, estimated_value, clients(id, name)')
+    .select(
+      'id, client_id, contact_id, company_name, source, service_interested, status, estimated_value, clients(id, name)',
+    )
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -129,36 +139,13 @@ async function applyWonSideEffects(deal: Deal, userId: string | undefined) {
 
   if (!deal.client_id) return
 
-  const { data: existingCustomer, error: customerLookupError } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('client_id', deal.client_id)
-    .maybeSingle()
-
-  if (customerLookupError) {
-    console.warn('Could not look up customer:', customerLookupError.message)
-    return
-  }
-
-  let customerId = existingCustomer?.id as string | undefined
-  if (!customerId) {
-    const { data: created, error: createCustomerError } = await supabase
-      .from('customers')
-      .insert({
-        client_id: deal.client_id,
-        converted_from_deal_id: deal.id,
-        converted_from_lead_id: deal.lead_id,
-        status: 'active',
-        created_by: userId ?? null,
-      })
-      .select('id')
-      .single()
-
-    if (createCustomerError) {
-      console.warn('Could not create customer from won deal:', createCustomerError.message)
-      return
-    }
-    customerId = created.id
+  try {
+    await setClientStatus(deal.client_id, 'active')
+  } catch (err) {
+    console.warn(
+      'Could not mark client active:',
+      err instanceof Error ? err.message : 'unknown error',
+    )
   }
 
   const { data: existingProject, error: projectLookupError } = await supabase
@@ -176,7 +163,6 @@ async function applyWonSideEffects(deal: Deal, userId: string | undefined) {
 
   const { error: createProjectError } = await supabase.from('projects').insert({
     name: deal.name,
-    customer_id: customerId,
     client_id: deal.client_id,
     deal_id: deal.id,
     project_type: deal.service,
@@ -329,18 +315,18 @@ export async function createDealFromLead(
   const existing = await findDealByLeadId(lead.id)
   if (existing) return existing
 
-  const company = lead.clients?.name?.trim()
+  const company = lead.company_name?.trim() || lead.clients?.name?.trim()
   const service = lead.service_interested?.trim()
   const name = [company, service].filter(Boolean).join(' — ') || company || service || 'New opportunity'
 
   const stage: DealStage =
-    lead.status === 'qualified' || lead.status === 'converted'
+    lead.status === 'following_up' || lead.status === 'converted'
       ? 'interested'
       : lead.status === 'contacted'
         ? 'contacted'
         : 'new_lead'
 
-  const deal = await createDeal(
+  return createDeal(
     {
       name,
       client_id: lead.client_id ?? '',
@@ -362,12 +348,6 @@ export async function createDealFromLead(
     },
     userId,
   )
-
-  const supabase = getSupabaseClient()
-  const { error } = await supabase.from('leads').update({ status: 'converted' }).eq('id', lead.id)
-  if (error) console.warn('Could not mark lead converted:', error.message)
-
-  return deal
 }
 
 export async function deleteDeal(id: string): Promise<void> {

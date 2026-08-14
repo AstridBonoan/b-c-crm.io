@@ -124,10 +124,10 @@ export function DealForm({
     if (lead.source) setValue('source', lead.source)
     if (lead.service_interested) setValue('service', lead.service_interested)
     if (lead.estimated_value != null) setValue('estimated_value', String(lead.estimated_value))
-    if (!getValues('name') && (lead.clients?.name || lead.service_interested)) {
+    if (!getValues('name') && (lead.company_name || lead.clients?.name || lead.service_interested)) {
       setValue(
         'name',
-        [lead.clients?.name, lead.service_interested].filter(Boolean).join(' — '),
+        [lead.company_name || lead.clients?.name, lead.service_interested].filter(Boolean).join(' — '),
       )
     }
   }, [leadId, leads, initial, setValue, getValues])
@@ -193,7 +193,7 @@ export function DealForm({
           <option value="">Not linked to a lead</option>
           {leads.map((lead) => (
             <option key={lead.id} value={lead.id}>
-              {lead.clients?.name ?? 'Unlinked lead'}
+              {lead.company_name || lead.clients?.name || 'Unlinked lead'}
               {lead.service_interested ? ` · ${lead.service_interested}` : ''}
             </option>
           ))}

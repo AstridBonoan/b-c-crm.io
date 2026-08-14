@@ -1,8 +1,16 @@
 import { z } from 'zod'
+import type { ClientStatus } from '@/types/database'
+
+export const CLIENT_STATUSES: { value: ClientStatus; label: string }[] = [
+  { value: 'prospect', label: 'Prospect' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
 
 export const clientSchema = z
   .object({
     client_type: z.enum(['individual', 'organization']),
+    client_status: z.enum(['prospect', 'active', 'inactive']),
     name: z.string().optional(),
     first_name: z.string().optional(),
     last_name: z.string().optional(),
@@ -59,4 +67,8 @@ export function buildClientDisplayName(values: ClientFormValues): string {
 export function toNullable(value: string | undefined): string | null {
   const trimmed = value?.trim()
   return trimmed ? trimmed : null
+}
+
+export function statusLabel(status: ClientStatus): string {
+  return CLIENT_STATUSES.find((item) => item.value === status)?.label ?? status
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Panel } from '@/components/ui/Panel'
 import { useAuth } from '@/features/auth/useAuth'
+import { useSearchQuery } from '@/hooks/useSearchQuery'
 import { ClientForm } from '@/features/clients/ClientForm'
 import {
   createClient,
@@ -14,16 +16,32 @@ import {
   listClients,
   updateClient,
 } from '@/features/clients/api'
-import type { ClientFormValues } from '@/features/clients/schemas'
-import type { Client, ClientType } from '@/types/database'
+import {
+  CLIENT_STATUSES,
+  statusLabel,
+  type ClientFormValues,
+} from '@/features/clients/schemas'
+import type { Client, ClientStatus, ClientType } from '@/types/database'
+
+function statusTone(status: ClientStatus): 'neutral' | 'brand' | 'success' | 'danger' {
+  if (status === 'active') return 'success'
+  if (status === 'inactive') return 'danger'
+  return 'brand'
+}
 
 export function ClientsPage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchQuery()
   const [clientType, setClientType] = useState<'all' | ClientType>('all')
+  const statusParam = searchParams.get('status')
+  const status: 'all' | ClientStatus =
+    statusParam === 'prospect' || statusParam === 'active' || statusParam === 'inactive'
+      ? statusParam
+      : 'all'
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -31,18 +49,30 @@ export function ClientsPage() {
   const [deleting, setDeleting] = useState<Client | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
+  const setStatus = (next: 'all' | ClientStatus) => {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        if (next === 'all') params.delete('status')
+        else params.set('status', next)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listClients({ search, clientType })
+      const data = await listClients({ search, clientType, status })
       setClients(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load clients')
     } finally {
       setLoading(false)
     }
-  }, [search, clientType])
+  }, [search, clientType, status])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -101,10 +131,8 @@ export function ClientsPage() {
     <div>
       <PageHeader
         title="Clients"
-        description="Organizations and individuals B&C works with. Contacts, leads, and projects link to these records."
-        actions={
-          <Button onClick={openCreate}>Add client</Button>
-        }
+        description="People and companies you work with. Convert a lead into a client when they’re ready to move forward."
+        actions={<Button onClick={openCreate}>Add client</Button>}
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -124,6 +152,18 @@ export function ClientsPage() {
           <option value="organization">Organizations</option>
           <option value="individual">Individuals</option>
         </select>
+        <select
+          value={status}
+          onChange={(event) => setStatus(event.target.value as 'all' | ClientStatus)}
+          className="input-field sm:w-auto"
+        >
+          <option value="all">All statuses</option>
+          {CLIENT_STATUSES.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error ? (
@@ -135,11 +175,30 @@ export function ClientsPage() {
       {loading ? (
         <Panel className="px-4 py-10 text-center text-sm text-ink-muted">Loading clients…</Panel>
       ) : clients.length === 0 ? (
-        <EmptyState
-          title="No clients yet"
-          description="Add an organization or individual to start tracking relationships."
-          action={<Button onClick={openCreate}>Add client</Button>}
-        />
+        search.trim() || clientType !== 'all' || status !== 'all' ? (
+          <EmptyState
+            title="No matching clients"
+            description="Try clearing search or filters to see all clients."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('')
+                  setClientType('all')
+                  setSearchParams({})
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No clients yet"
+            description="Convert a lead into a client, or add a client directly."
+            action={<Button onClick={openCreate}>Add client</Button>}
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -147,9 +206,9 @@ export function ClientsPage() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Name</th>
                 <th className="px-4 py-3 font-semibold">Type</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Email</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
-                <th className="px-4 py-3 font-semibold">Location</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -165,9 +224,13 @@ export function ClientsPage() {
                       {client.client_type}
                     </Badge>
                   </td>
+                  <td className="px-4 py-3">
+                    <Badge tone={statusTone(client.client_status)}>
+                      {statusLabel(client.client_status)}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-3 text-ink-muted">{client.email ?? '—'}</td>
                   <td className="px-4 py-3 text-ink-muted">{client.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-muted">{client.location ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <Button variant="secondary" size="sm" onClick={() => openEdit(client)}>

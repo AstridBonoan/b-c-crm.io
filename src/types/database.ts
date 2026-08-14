@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'sales' | 'developer'
+export type UserRole = 'founder_cto' | 'founder_cmo'
 
 export type Profile = {
   id: string
@@ -11,10 +11,12 @@ export type Profile = {
 }
 
 export type ClientType = 'individual' | 'organization'
+export type ClientStatus = 'prospect' | 'active' | 'inactive'
 
 export type Client = {
   id: string
   client_type: ClientType
+  client_status: ClientStatus
   name: string
   first_name: string | null
   last_name: string | null
@@ -47,8 +49,7 @@ export type Contact = {
 export type LeadStatus =
   | 'new'
   | 'contacted'
-  | 'qualified'
-  | 'unqualified'
+  | 'following_up'
   | 'converted'
   | 'lost'
 
@@ -56,6 +57,7 @@ export type Lead = {
   id: string
   client_id: string | null
   contact_id: string | null
+  company_name: string | null
   source: string | null
   service_interested: string | null
   status: LeadStatus
@@ -124,7 +126,7 @@ export type ProjectStatus =
 export type Project = {
   id: string
   name: string
-  customer_id: string
+  customer_id: string | null
   client_id: string
   deal_id: string | null
   project_type: string | null
@@ -210,6 +212,78 @@ export type DocumentRecord = {
   created_by: string | null
 }
 
+/** Lead Finder tables — see features/lead-finder/types.ts for rich shapes. */
+export type ProspectRow = {
+  id: string
+  search_id: string | null
+  external_id: string | null
+  business_name: string
+  industry: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  phone: string | null
+  website: string | null
+  latitude: number | null
+  longitude: number | null
+  google_business_url: string | null
+  facebook_url: string | null
+  instagram_url: string | null
+  linkedin_url: string | null
+  yelp_url: string | null
+  has_website: boolean
+  pipeline_status: string
+  saved_to_crm: boolean
+  crm_lead_id: string | null
+  crm_client_id: string | null
+  notes: string | null
+  last_contacted_at: string | null
+  next_follow_up_at: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProspectSearchRow = {
+  id: string
+  query_label: string
+  industry: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  radius_miles: number | null
+  requires_website: boolean | null
+  business_size: string | null
+  result_count: number
+  created_by: string | null
+  created_at: string
+}
+
+export type ProspectListRow = {
+  id: string
+  name: string
+  description: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProspectListItemRow = {
+  list_id: string
+  prospect_id: string
+  added_at: string
+}
+
+export type ProspectNoteRow = {
+  id: string
+  prospect_id: string
+  body: string
+  next_follow_up_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
 type TableDef<Row> = {
   Row: Row
   Insert: Partial<Row> & { id?: string }
@@ -231,12 +305,18 @@ export type Database = {
       activities: TableDef<Activity>
       notes: TableDef<Note>
       documents: TableDef<DocumentRecord>
+      prospect_searches: TableDef<ProspectSearchRow>
+      prospects: TableDef<ProspectRow>
+      prospect_lists: TableDef<ProspectListRow>
+      prospect_list_items: TableDef<ProspectListItemRow>
+      prospect_notes: TableDef<ProspectNoteRow>
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
       user_role: UserRole
       client_type: ClientType
+      client_status: ClientStatus
       lead_status: LeadStatus
       deal_stage: DealStage
       project_status: ProjectStatus

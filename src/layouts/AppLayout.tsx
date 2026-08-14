@@ -1,5 +1,7 @@
 import {
+  Briefcase,
   Building2,
+  ChartColumn,
   CheckSquare,
   ContactRound,
   FileText,
@@ -9,13 +11,16 @@ import {
   Menu,
   NotebookPen,
   Search,
+  StickyNote,
   Target,
-  Users,
+  Radar,
+  UsersRound,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/useAuth'
+import { roleTitle } from '@/features/roles/roles'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { BrandLogo } from '@/components/brand/BrandLogo'
@@ -27,16 +32,20 @@ const navItems: {
   end?: boolean
 }[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/lead-finder', label: 'Lead Finder', icon: Radar },
+  { to: '/leads', label: 'Leads', icon: Target },
   { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: ContactRound },
-  { to: '/leads', label: 'Leads', icon: Target },
   { to: '/pipeline', label: 'Pipeline', icon: Handshake },
-  { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/deals', label: 'Deals', icon: Briefcase },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/activities', label: 'Activities', icon: NotebookPen },
+  { to: '/notes', label: 'Notes', icon: StickyNote },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/search', label: 'Search', icon: Search },
+  { to: '/analytics', label: 'Analytics', icon: ChartColumn },
+  { to: '/team', label: 'Team', icon: UsersRound },
 ]
 
 export function AppLayout() {
@@ -52,8 +61,8 @@ export function AppLayout() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-[4.75rem] items-center justify-between border-b border-white/10 px-3">
-          <div className="min-w-0 flex-1 pr-2">
+        <div className="relative flex h-[4.75rem] items-center border-b border-white/10 px-6">
+          <div className="flex min-w-0 flex-1 flex-col items-start text-left">
             <BrandLogo variant="dark" className="h-12 w-auto max-w-full object-contain object-left" />
             <p className="mt-1 text-[10px] tracking-[0.16em] text-teal-bright uppercase">
               Internal CRM
@@ -61,7 +70,7 @@ export function AppLayout() {
           </div>
           <button
             type="button"
-            className="shrink-0 p-1 text-sidebar-muted lg:hidden"
+            className="absolute top-1/2 right-3 shrink-0 -translate-y-1/2 p-1 text-sidebar-muted lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           >
@@ -136,7 +145,7 @@ export function AppLayout() {
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-ink">{displayName}</p>
               {profile?.role ? (
-                <p className="text-xs capitalize text-ink-muted">{profile.role}</p>
+                <p className="text-xs text-ink-muted">{roleTitle(profile.role)}</p>
               ) : null}
             </div>
             <Button variant="secondary" size="sm" onClick={() => void signOut()}>
