@@ -3,10 +3,10 @@ import type { LeadStatus } from '@/types/database'
 
 export const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
   { value: 'new', label: 'New' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'following_up', label: 'Following Up' },
-  { value: 'converted', label: 'Converted' },
-  { value: 'lost', label: 'Lost' },
+  { value: 'contacted', label: 'Reached out' },
+  { value: 'following_up', label: 'Following up' },
+  { value: 'converted', label: 'Became client' },
+  { value: 'lost', label: 'Not pursuing' },
 ]
 
 /** Statuses you can set on the lead form (conversion happens via Convert). */

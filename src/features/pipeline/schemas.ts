@@ -2,14 +2,14 @@ import { z } from 'zod'
 import type { Deal, DealStage } from '@/types/database'
 
 export const PIPELINE_STAGES: { value: DealStage; label: string }[] = [
-  { value: 'new_lead', label: 'New Lead' },
-  { value: 'contacted', label: 'Contacted' },
+  { value: 'new_lead', label: 'New opportunity' },
+  { value: 'contacted', label: 'In conversation' },
   { value: 'interested', label: 'Interested' },
-  { value: 'meeting', label: 'Meeting' },
-  { value: 'proposal_sent', label: 'Proposal Sent' },
+  { value: 'meeting', label: 'Meeting booked' },
+  { value: 'proposal_sent', label: 'Proposal sent' },
   { value: 'negotiating', label: 'Negotiating' },
   { value: 'won', label: 'Won' },
-  { value: 'lost', label: 'Lost' },
+  { value: 'lost', label: 'Closed lost' },
 ]
 
 export const STAGE_PROBABILITY: Record<DealStage, number> = {
