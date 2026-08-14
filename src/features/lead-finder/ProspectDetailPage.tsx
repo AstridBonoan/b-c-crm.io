@@ -8,6 +8,7 @@ import {
   addProspectNote,
   getProspect,
   listProspectNotes,
+  prospectGoogleSearchUrl,
   saveProspectToCrm,
   updateProspectNotesField,
 } from '@/features/lead-finder/api'
@@ -136,11 +137,7 @@ export function ProspectDetailPage() {
                   <span>
                     Not on file.{' '}
                     <a
-                      href={`https://www.google.com/search?q=${encodeURIComponent(
-                        `"${prospect.business_name}" ${[prospect.city, prospect.state]
-                          .filter(Boolean)
-                          .join(' ')} website`,
-                      )}`}
+                      href={prospectGoogleSearchUrl(prospect)}
                       className="text-blue hover:underline"
                       target="_blank"
                       rel="noreferrer"

@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
   listProspects,
+  prospectGoogleSearchUrl,
   prospectsToCsv,
   runProspectSearch,
   type ProspectFilters,
@@ -294,9 +295,7 @@ export function LeadFinderPage() {
                       </a>
                     ) : (
                       <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(
-                          `"${p.business_name}" ${[p.city, p.state].filter(Boolean).join(' ')} website`,
-                        )}`}
+                        href={prospectGoogleSearchUrl(p)}
                         className="text-ink-muted hover:underline"
                         target="_blank"
                         rel="noreferrer"

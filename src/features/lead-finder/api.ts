@@ -296,6 +296,20 @@ export async function addProspectToList(listId: string, prospectId: string): Pro
   if (error) throw new Error(error.message)
 }
 
+export function prospectGoogleSearchUrl(prospect: {
+  business_name: string
+  industry?: string | null
+  city?: string | null
+  state?: string | null
+  phone?: string | null
+}): string {
+  const place = [prospect.city, prospect.state].filter(Boolean).join(', ')
+  const query = [prospect.business_name, prospect.industry, place, prospect.phone]
+    .filter(Boolean)
+    .join(' ')
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`
+}
+
 export function prospectsToCsv(prospects: Prospect[]): string {
   const header = [
     'business_name',
