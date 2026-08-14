@@ -30,8 +30,9 @@ import type { ClientFormValues } from '@/features/clients/schemas'
 import type { Client, Lead, LeadStatus } from '@/types/database'
 
 function statusTone(status: LeadStatus): 'neutral' | 'brand' | 'success' | 'danger' {
-  if (status === 'converted' || status === 'qualified') return 'success'
-  if (status === 'lost' || status === 'unqualified') return 'danger'
+  if (status === 'converted') return 'success'
+  if (status === 'lost') return 'danger'
+  if (status === 'following_up') return 'brand'
   if (status === 'new' || status === 'contacted') return 'brand'
   return 'neutral'
 }
@@ -225,7 +226,7 @@ export function LeadsPage() {
         ) : (
           <EmptyState
             title="No leads yet"
-            description="Capture inbound interest here, then convert a qualified lead into a client."
+            description="Capture inbound interest here, then convert a lead into a client."
             action={<Button onClick={openCreate}>Add lead</Button>}
           />
         )

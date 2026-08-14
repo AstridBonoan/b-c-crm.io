@@ -49,8 +49,7 @@ export type Contact = {
 export type LeadStatus =
   | 'new'
   | 'contacted'
-  | 'qualified'
-  | 'unqualified'
+  | 'following_up'
   | 'converted'
   | 'lost'
 

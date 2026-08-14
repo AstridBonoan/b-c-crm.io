@@ -195,7 +195,7 @@ export function ClientsPage() {
         ) : (
           <EmptyState
             title="No clients yet"
-            description="Convert a qualified lead into a client, or add a client directly."
+            description="Convert a lead into a client, or add a client directly."
             action={<Button onClick={openCreate}>Add client</Button>}
           />
         )
