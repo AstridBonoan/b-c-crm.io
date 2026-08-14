@@ -14,13 +14,16 @@ export const documentMetaSchema = z.object(relationFields)
 
 export type DocumentMetaValues = z.infer<typeof documentMetaSchema>
 
+export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
+
 export const uploadDocumentSchema = z.object({
   ...relationFields,
-  fileName: z.string().min(1, 'Choose a file to upload'),
+  fileName: z.string().min(1, 'Choose at least one file to upload'),
   fileSize: z
     .number()
-    .positive('Choose a file to upload')
-    .max(20 * 1024 * 1024, 'File must be 20 MB or smaller'),
+    .positive('Choose at least one file to upload')
+    .max(MAX_DOCUMENT_BYTES, 'Each file must be 20 MB or smaller'),
+  fileCount: z.number().int().min(1, 'Choose at least one file to upload'),
 })
 
 export type UploadDocumentFormValues = z.infer<typeof uploadDocumentSchema>
@@ -59,7 +62,7 @@ export function sanitizeFileName(name: string): string {
 
 export function buildStoragePath(userId: string | undefined, fileName: string): string {
   const safeName = sanitizeFileName(fileName) || 'file'
-  const stamp = Date.now()
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const owner = userId ?? 'shared'
   return `${owner}/${stamp}-${safeName}`
 }

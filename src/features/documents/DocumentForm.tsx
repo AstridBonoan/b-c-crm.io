@@ -29,7 +29,7 @@ type DocumentFormProps = {
   clients: Pick<Client, 'id' | 'name'>[]
   submitting: boolean
   formError: string | null
-  onUpload: (values: DocumentMetaValues, file: File) => Promise<void>
+  onUpload: (values: DocumentMetaValues, files: File[]) => Promise<void>
   onUpdate: (values: DocumentMetaValues) => Promise<void>
   onCancel: () => void
 }
@@ -44,6 +44,7 @@ const emptyValues: UploadDocumentFormValues = {
   project_id: '',
   fileName: '',
   fileSize: 0,
+  fileCount: 0,
 }
 
 function toFormValues(doc: DocumentRecord): UploadDocumentFormValues {
@@ -57,6 +58,7 @@ function toFormValues(doc: DocumentRecord): UploadDocumentFormValues {
     project_id: doc.project_id ?? '',
     fileName: doc.name,
     fileSize: doc.size_bytes ?? 1,
+    fileCount: 1,
   }
 }
 
@@ -77,7 +79,7 @@ export function DocumentForm({
   onCancel,
 }: DocumentFormProps) {
   const isEdit = Boolean(initial)
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [contacts, setContacts] = useState<Pick<Contact, 'id' | 'first_name' | 'last_name'>[]>([])
   const [leads, setLeads] = useState<
     Pick<Lead, 'id' | 'source' | 'service_interested' | 'status'>[]
@@ -103,7 +105,7 @@ export function DocumentForm({
 
   useEffect(() => {
     reset(initial ? toFormValues(initial) : emptyValues)
-    setFile(null)
+    setFiles([])
   }, [initial, reset])
 
   useEffect(() => {
@@ -208,8 +210,8 @@ export function DocumentForm({
       return
     }
 
-    if (!file) return
-    await onUpload(meta, file)
+    if (files.length === 0) return
+    await onUpload(meta, files)
   }
 
   return (
@@ -217,29 +219,42 @@ export function DocumentForm({
       {!isEdit ? (
         <div>
           <label htmlFor="file" className="block text-sm font-medium text-ink">
-            File
+            Files
           </label>
           <input
             id="file"
             type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
             className="input-field mt-1 rounded-md file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink"
             onChange={(event) => {
-              const next = event.target.files?.[0] ?? null
-              setFile(next)
-              setValue('fileName', next?.name ?? '', { shouldValidate: true })
-              setValue('fileSize', next?.size ?? 0, { shouldValidate: true })
+              const next = Array.from(event.target.files ?? [])
+              setFiles(next)
+              const largest = next.reduce((max, item) => Math.max(max, item.size), 0)
+              setValue('fileName', next.map((item) => item.name).join(', '), { shouldValidate: true })
+              setValue('fileSize', largest, { shouldValidate: true })
+              setValue('fileCount', next.length, { shouldValidate: true })
               const currentName = watch('name')
-              if (!currentName?.trim() && next?.name) {
-                setValue('name', next.name, { shouldValidate: true })
+              if (!currentName?.trim() && next[0]) {
+                setValue('name', next[0].name, { shouldValidate: true })
               }
             }}
           />
-          {errors.fileName || errors.fileSize ? (
+          {errors.fileName || errors.fileSize || errors.fileCount ? (
             <p className="mt-1 text-xs text-danger">
-              {errors.fileName?.message ?? errors.fileSize?.message}
+              {errors.fileName?.message ?? errors.fileSize?.message ?? errors.fileCount?.message}
             </p>
+          ) : files.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-xs text-ink-muted">
+              {files.map((item) => (
+                <li key={`${item.name}-${item.size}-${item.lastModified}`}>{item.name}</li>
+              ))}
+            </ul>
           ) : (
-            <p className="mt-1 text-xs text-ink-muted">Max 20 MB. Stored privately in Supabase.</p>
+            <p className="mt-1 text-xs text-ink-muted">
+              Select multiple documents or images in one upload. Max 20 MB each. Stored privately in
+              Supabase.
+            </p>
           )}
         </div>
       ) : null}
@@ -374,10 +389,14 @@ export function DocumentForm({
           {submitting
             ? isEdit
               ? 'Saving…'
-              : 'Uploading…'
+              : files.length > 1
+                ? `Uploading ${files.length} files…`
+                : 'Uploading…'
             : isEdit
               ? 'Save changes'
-              : 'Upload document'}
+              : files.length > 1
+                ? `Upload ${files.length} files`
+                : 'Upload'}
         </Button>
       </div>
     </form>
