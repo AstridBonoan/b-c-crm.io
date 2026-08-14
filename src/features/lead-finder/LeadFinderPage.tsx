@@ -44,12 +44,12 @@ export function LeadFinderPage() {
   } = useForm<ProspectSearchFormValues>({
     resolver: zodResolver(prospectSearchSchema),
     defaultValues: {
-      industry: 'Construction',
+      industry: '',
       category: '',
-      city: 'Newark',
-      state: 'NJ',
+      city: '',
+      state: '',
       zip: '',
-      radius_miles: 25,
+      radius_miles: undefined,
       requires_website: 'any',
       business_size: '',
     },
