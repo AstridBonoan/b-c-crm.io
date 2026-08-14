@@ -100,9 +100,11 @@ function LeadTable({ title, leads, showTrash, onConvert, onEdit, onDelete }: Lea
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => onConvert(lead)}>
-                        Convert
-                      </Button>
+                      {lead.status !== 'converted' ? (
+                        <Button variant="secondary" size="sm" onClick={() => onConvert(lead)}>
+                          Convert
+                        </Button>
+                      ) : null}
                       <Button variant="secondary" size="sm" onClick={() => onEdit(lead)}>
                         Edit
                       </Button>
@@ -168,7 +170,7 @@ export function LeadsPage() {
   }, [load])
 
   const contactedLeads = useMemo(
-    () => leads.filter((lead) => lead.status === 'new' || lead.status === 'contacted'),
+    () => leads.filter((lead) => lead.status === 'contacted'),
     [leads],
   )
   const followingUpLeads = useMemo(
@@ -247,8 +249,7 @@ export function LeadsPage() {
     }
   }
 
-  const hasAnyTableRows =
-    contactedLeads.length + followingUpLeads.length + lostLeads.length > 0
+  const hasAnyTableRows = leads.length > 0
 
   return (
     <div>
@@ -297,25 +298,37 @@ export function LeadsPage() {
       ) : (
         <>
           <LeadTable
-            title="Contacted"
-            leads={contactedLeads}
+            title="All leads"
+            leads={leads}
             onConvert={openConvert}
             onEdit={openEdit}
           />
-          <LeadTable
-            title="Following Up"
-            leads={followingUpLeads}
-            onConvert={openConvert}
-            onEdit={openEdit}
-          />
-          <LeadTable
-            title="Lost"
-            leads={lostLeads}
-            showTrash
-            onConvert={openConvert}
-            onEdit={openEdit}
-            onDelete={setDeleting}
-          />
+          {contactedLeads.length > 0 ? (
+            <LeadTable
+              title="Contacted"
+              leads={contactedLeads}
+              onConvert={openConvert}
+              onEdit={openEdit}
+            />
+          ) : null}
+          {followingUpLeads.length > 0 ? (
+            <LeadTable
+              title="Following Up"
+              leads={followingUpLeads}
+              onConvert={openConvert}
+              onEdit={openEdit}
+            />
+          ) : null}
+          {lostLeads.length > 0 ? (
+            <LeadTable
+              title="Lost"
+              leads={lostLeads}
+              showTrash
+              onConvert={openConvert}
+              onEdit={openEdit}
+              onDelete={setDeleting}
+            />
+          ) : null}
         </>
       )}
 
