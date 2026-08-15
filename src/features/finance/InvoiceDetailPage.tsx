@@ -13,6 +13,7 @@ import { PaymentForm } from '@/features/finance/PaymentForm'
 import { InvoiceStatusBadge } from '@/features/finance/InvoiceStatusBadge'
 import {
   cancelInvoice,
+  deleteInvoice,
   getInvoice,
   issueInvoice,
   listClientOptions,
@@ -37,6 +38,7 @@ export function InvoiceDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
@@ -172,9 +174,14 @@ export function InvoiceDetailPage() {
             <Button variant="secondary" size="sm" onClick={() => { setFormError(null); setEditorOpen(true) }}>
               Edit
             </Button>
-            {invoice.lifecycle !== 'cancelled' && invoice.amount_paid === 0 ? (
+            {invoice.lifecycle === 'issued' && invoice.amount_paid === 0 ? (
               <Button variant="ghost" size="sm" className="text-danger" onClick={() => setCancelOpen(true)}>
                 Cancel invoice
+              </Button>
+            ) : null}
+            {invoice.amount_paid === 0 ? (
+              <Button variant="ghost" size="sm" className="text-danger" onClick={() => setDeleteOpen(true)}>
+                Delete
               </Button>
             ) : null}
             {invoice.clients ? (
@@ -225,6 +232,24 @@ export function InvoiceDetailPage() {
           void cancelInvoice(id, user?.id)
             .then(() => { setCancelOpen(false); return load() })
             .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed'))
+            .finally(() => setBusy(false))
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete invoice"
+        message={`Permanently delete ${invoice?.invoice_number ?? 'this invoice'}? This cannot be undone. Invoices with recorded payments cannot be deleted.`}
+        busy={busy}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setBusy(true)
+          void deleteInvoice(id)
+            .then(() => navigate('/invoices'))
+            .catch((err: unknown) => {
+              setDeleteOpen(false)
+              setError(err instanceof Error ? err.message : 'Failed to delete')
+            })
             .finally(() => setBusy(false))
         }}
       />

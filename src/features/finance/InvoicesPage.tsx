@@ -163,7 +163,7 @@ export function InvoicesPage() {
                     >
                       Duplicate
                     </Button>
-                    {invoice.lifecycle === 'draft' ? (
+                    {invoice.amount_paid === 0 ? (
                       <Button variant="ghost" size="sm" className="text-danger" onClick={() => setDeleting(invoice)}>
                         Delete
                       </Button>
@@ -188,8 +188,8 @@ export function InvoicesPage() {
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Delete draft invoice"
-        message={`Delete ${deleting?.invoice_number ?? 'this draft'}?`}
+        title="Delete invoice"
+        message={`Permanently delete ${deleting?.invoice_number ?? 'this invoice'}? This cannot be undone.`}
         busy={deleteBusy}
         onCancel={() => setDeleting(null)}
         onConfirm={() => {

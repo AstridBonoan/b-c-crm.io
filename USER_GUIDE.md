@@ -121,7 +121,8 @@ Open **Projects**. Update status and progress. Attach tasks, notes, and document
 3. Save as Draft or Issue now (Unpaid).
 4. Open the invoice → **Download PDF** (saves to this device so you can attach it in Gmail yourself), **Print**, or **Copy summary**. Payment options on the invoice come from **Finance → Settings**. Clicking a PayPal/Venmo/etc. link does **not** mark it paid. The CRM does not send email.
 5. When the client pays outside the CRM, **Record payment** (full or partial). Status becomes Partially Paid or Paid. Overdue is automatic after the due date if a balance remains.
-6. **Finance** dashboard shows billed, paid, outstanding, overdue, and recent payments. Client and Project rows have a **Finance** button for that record’s summary.
+6. **Delete** removes an invoice that has no recorded payments (draft, unpaid, overdue, or cancelled). **Cancel invoice** keeps the record in history but stops payment. Invoices with payments cannot be deleted.
+7. **Finance** dashboard shows billed, paid, outstanding, overdue, and recent payments. Client and Project rows have a **Finance** button for that record’s summary.
 
 Winning a deal does **not** auto-create an invoice.
 
@@ -151,7 +152,7 @@ If Payment options are missing on an invoice, the methods are still off or empty
 | **Proposals** | Lightweight quotes linked to deals | Track draft vs sent vs accepted. No Stripe. |
 | **Projects** | Delivery work | After win, or create by hand. **Finance** shows invoices for that project. |
 | **Finance** | Dashboard: billed, paid, outstanding, overdue, due soon, recent payments | Company money snapshot. **Settings** holds PayPal/Venmo/etc. links shown on all invoices. |
-| **Invoices** | Invoice table, create/edit, print view, payment history | Issue invoices. **Download PDF** to this device, then attach it in Gmail yourself. Record payments after you confirm them. |
+| **Invoices** | Invoice table, create/edit, print view, payment history | Issue invoices. **Download PDF** to this device, then attach it in Gmail yourself. Record payments after you confirm them. **Delete** unpaid invoices; **Cancel** keeps them in history. |
 | **Payments** | List of recorded payments | Jump to the related invoice. |
 | **Tasks** | To-dos with due date, priority, status | Link to client, deal, or project when you can. |
 | **Activities** | Chronological interaction log | Shared history. Deal timeline reuses this. |

@@ -332,9 +332,12 @@ export async function cancelInvoice(id: string, userId?: string): Promise<void> 
 
 export async function deleteInvoice(id: string): Promise<void> {
   const invoice = await getInvoice(id)
-  if (invoice.lifecycle !== 'draft') throw new Error('Only draft invoices can be deleted')
-  if (invoice.payments.length > 0) throw new Error('This invoice has payment records')
+  if (invoice.amount_paid > 0) {
+    throw new Error('Invoices with recorded payments cannot be deleted. Cancel the invoice instead.')
+  }
   const supabase = getSupabaseClient()
+  const { error: paymentsError } = await supabase.from('payments').delete().eq('invoice_id', id)
+  if (paymentsError) throw new Error(paymentsError.message)
   const { error } = await supabase.from('invoices').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
