@@ -108,6 +108,12 @@ export async function getProspect(id: string): Promise<Prospect> {
   return mapProspect(data as Record<string, unknown>)
 }
 
+export async function deleteProspect(id: string): Promise<void> {
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.from('prospects').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function listProspectNotes(prospectId: string): Promise<ProspectNote[]> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase

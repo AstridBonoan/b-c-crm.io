@@ -6,8 +6,10 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuth } from '@/features/auth/useAuth'
 import {
+  deleteProspect,
   getOutreachSnapshot,
   getProspectSearch,
   listProspects,
@@ -53,6 +55,8 @@ export function LeadFinderPage() {
   const [activeSearchLabel, setActiveSearchLabel] = useState<string | null>(null)
   const [sessionSearchId, setSessionSearchId] = useState<string | null>(null)
   const [showAllSearches, setShowAllSearches] = useState(false)
+  const [deleting, setDeleting] = useState<Prospect | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const {
     register,
@@ -217,6 +221,23 @@ export function LeadFinderPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleDelete = async () => {
+    if (!deleting) return
+    setDeleteBusy(true)
+    try {
+      await deleteProspect(deleting.id)
+      setDeleting(null)
+      const remaining = prospects.filter((row) => row.id !== deleting.id)
+      setProspects(remaining)
+      setSnapshot(await getOutreachSnapshot(remaining))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete prospect')
+      setDeleting(null)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -326,11 +347,23 @@ export function LeadFinderPage() {
                       <p className="mt-0.5 truncate text-xs text-ink-muted">{summary.businessLine}</p>
                       <p className="truncate text-xs text-ink-muted">{summary.outreachLine}</p>
                     </div>
-                    <span
-                      className={`shrink-0 text-xs ${overdue ? 'font-medium text-danger' : 'text-ink-muted'}`}
-                    >
-                      {formatOutreachDate(p.next_follow_up_at)}
-                    </span>
+                    <div className="flex shrink-0 items-start gap-2">
+                      <span
+                        className={`text-xs ${overdue ? 'font-medium text-danger' : 'text-ink-muted'}`}
+                      >
+                        {formatOutreachDate(p.next_follow_up_at)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-lg leading-none text-danger hover:bg-danger-soft"
+                        aria-label={`Delete ${p.business_name}`}
+                        title="Remove from Lead Finder"
+                        onClick={() => setDeleting(p)}
+                      >
+                        🗑️
+                      </Button>
+                    </div>
                   </li>
                 )
               })}
@@ -429,6 +462,7 @@ export function LeadFinderPage() {
                 <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 font-semibold">Website</th>
                 <th className="px-4 py-3 font-semibold">Follow-up</th>
+                <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -477,12 +511,33 @@ export function LeadFinderPage() {
                   <td className="px-4 py-3 text-ink-muted">
                     {formatOutreachDate(p.next_follow_up_at)}
                   </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg leading-none text-danger hover:bg-danger-soft"
+                      aria-label={`Delete ${p.business_name}`}
+                      title="Remove from Lead Finder"
+                      onClick={() => setDeleting(p)}
+                    >
+                      🗑️
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Panel>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Remove from Lead Finder"
+        message={`Remove “${deleting?.business_name ?? 'this prospect'}” from Lead Finder? Outreach history here will be deleted. If they are already on Leads, that record stays.`}
+        busy={deleteBusy}
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => void handleDelete()}
+      />
     </div>
   )
 }

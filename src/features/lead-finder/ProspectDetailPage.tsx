@@ -5,10 +5,12 @@ import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuth } from '@/features/auth/useAuth'
 import {
   addProspectNote,
   createProspectOutreach,
+  deleteProspect,
   getProspect,
   listProspectNotes,
   listProspectOutreach,
@@ -43,6 +45,7 @@ export function ProspectDetailPage() {
   const [logOpen, setLogOpen] = useState(false)
   const [logSubmitting, setLogSubmitting] = useState(false)
   const [logError, setLogError] = useState<string | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!id) return
@@ -144,6 +147,19 @@ export function ProspectDetailPage() {
     }
   }
 
+  const onDelete = async () => {
+    setBusy(true)
+    try {
+      await deleteProspect(prospect.id)
+      navigate(prospect.search_id ? `/lead-finder?s=${prospect.search_id}` : '/lead-finder')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete prospect')
+      setDeleteOpen(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -160,6 +176,14 @@ export function ProspectDetailPage() {
               }
             >
               Back
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-danger hover:bg-danger-soft"
+              onClick={() => setDeleteOpen(true)}
+              disabled={busy}
+            >
+              Delete
             </Button>
             <Button onClick={() => void onSaveCrm()} disabled={busy}>
               {busy ? 'Saving…' : prospect.saved_to_crm ? 'Saved to CRM' : 'Save lead to CRM'}
@@ -369,6 +393,15 @@ export function ProspectDetailPage() {
           }}
         />
       </Modal>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Remove from Lead Finder"
+        message={`Remove “${prospect.business_name}” from Lead Finder? Outreach history here will be deleted. If they are already on Leads, that record stays.`}
+        busy={busy}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => void onDelete()}
+      />
     </div>
   )
 }
