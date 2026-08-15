@@ -194,6 +194,12 @@ export async function createProspectOutreach(
   return data as ProspectOutreach
 }
 
+export type LatestOutreach = {
+  method: string
+  result: string
+  contacted_at: string
+}
+
 export type OutreachSnapshot = {
   total: number
   notContacted: number
@@ -202,6 +208,7 @@ export type OutreachSnapshot = {
   followUpsOverdue: number
   interested: number
   meetingsScheduled: number
+  latestByProspectId: Record<string, LatestOutreach>
 }
 
 export async function getOutreachSnapshot(prospects: Prospect[]): Promise<OutreachSnapshot> {
@@ -209,19 +216,33 @@ export async function getOutreachSnapshot(prospects: Prospect[]): Promise<Outrea
   const ids = prospects.map((p) => p.id)
   let interested = 0
   let meetingsScheduled = 0
+  const latestByProspectId: Record<string, LatestOutreach> = {}
 
   if (ids.length > 0) {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('prospect_outreach')
-      .select('prospect_id, result')
+      .select('prospect_id, method, result, contacted_at, created_at')
       .in('prospect_id', ids)
     if (error) throw new Error(error.message)
+
     const interestedIds = new Set<string>()
     const meetingIds = new Set<string>()
-    for (const row of data ?? []) {
+    const ranked = [...(data ?? [])].sort((a, b) => {
+      const byDate = String(b.contacted_at).localeCompare(String(a.contacted_at))
+      if (byDate !== 0) return byDate
+      return String(b.created_at).localeCompare(String(a.created_at))
+    })
+    for (const row of ranked) {
       if (row.result === 'interested') interestedIds.add(row.prospect_id)
       if (row.result === 'meeting_scheduled') meetingIds.add(row.prospect_id)
+      if (!latestByProspectId[row.prospect_id]) {
+        latestByProspectId[row.prospect_id] = {
+          method: row.method,
+          result: row.result,
+          contacted_at: row.contacted_at,
+        }
+      }
     }
     interested = interestedIds.size
     meetingsScheduled = meetingIds.size
@@ -239,6 +260,7 @@ export async function getOutreachSnapshot(prospects: Prospect[]): Promise<Outrea
     ).length,
     interested,
     meetingsScheduled,
+    latestByProspectId,
   }
 }
 
