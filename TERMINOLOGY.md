@@ -67,6 +67,7 @@ Quick contrast:
 | **Project** | Delivery work after a deal is won (or created manually). |
 | **Invoice** | A bill to a client, usually for a project. Totals come from line items. |
 | **Payment** | A manually recorded receipt against an invoice (Zelle, PayPal, etc. as labels only). |
+| **Payment options** | Company payment instructions/links from Finance Settings. Shown on the invoice view, not on the Create invoice form. |
 | **Balance due** | Invoice total minus completed payments. Never a separate editable field. |
 
 ---

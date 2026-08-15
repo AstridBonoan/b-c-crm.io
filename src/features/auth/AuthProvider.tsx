@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -18,6 +19,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [profileReady, setProfileReady] = useState(false)
   const configured = env.isSupabaseConfigured
+  const profileUserIdRef = useRef<string | null>(null)
+  profileUserIdRef.current = profile?.id ?? null
 
   const loadProfile = useCallback(async (userId: string) => {
     const supabase = tryGetSupabaseClient()
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
       if (event === 'TOKEN_REFRESHED') return
+      if (event === 'SIGNED_IN' && profileUserIdRef.current === nextSession.user.id) return
       // Supabase can deadlock if other auth/DB calls run inside this callback.
       window.setTimeout(() => {
         if (!mounted) return
