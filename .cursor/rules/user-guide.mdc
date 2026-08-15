@@ -1,0 +1,19 @@
+---
+description: Keep USER_GUIDE.md in sync whenever a user-facing feature is added
+alwaysApply: true
+---
+
+# Keep the user guide current
+
+`USER_GUIDE.md` is the operator playbook. `TERMINOLOGY.md` is the glossary.
+
+When you add or change a **user-facing** feature (new nav item, page, workflow step, button that changes how sales/delivery works), update the docs in the same change:
+
+1. **USER_GUIDE.md**
+   - Add or edit the row in **What each page is for** if there is a new screen.
+   - Add or edit **End-to-end workflow** / **Step by step** if the path through the CRM changed.
+   - Mention what the feature does **not** do if that is easy to misunderstand (email, Stripe, auto-create deals).
+2. **TERMINOLOGY.md**
+   - Add dashboard metric names, statuses, stages, or record types if you introduced new words.
+
+Do not wait for the user to ask. Do not create a second guide. Skip this only for purely internal refactors with no UI or workflow change.

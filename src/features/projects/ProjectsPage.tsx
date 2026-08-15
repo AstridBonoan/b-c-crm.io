@@ -25,6 +25,8 @@ import {
   type ProjectFormValues,
 } from '@/features/projects/schemas'
 import type { Client, Project, ProjectStatus } from '@/types/database'
+import { getProjectFinanceSummary, type ClientFinanceSummary } from '@/features/finance/api'
+import { FinanceSummaryPanel } from '@/features/finance/FinanceSummaryPanel'
 
 function statusTone(status: ProjectStatus): 'neutral' | 'brand' | 'success' | 'danger' {
   if (status === 'completed') return 'success'
@@ -49,6 +51,9 @@ export function ProjectsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<ProjectWithRelations | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [financeProject, setFinanceProject] = useState<ProjectWithRelations | null>(null)
+  const [financeSummary, setFinanceSummary] = useState<ClientFinanceSummary | null>(null)
+  const [financeBusy, setFinanceBusy] = useState(false)
 
   const loadClients = useCallback(async () => {
     const data = await listClientOptions()
@@ -307,6 +312,21 @@ export function ProjectsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => {
+                          setFinanceProject(project)
+                          setFinanceSummary(null)
+                          setFinanceBusy(true)
+                          void getProjectFinanceSummary(project.id)
+                            .then(setFinanceSummary)
+                            .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load finance'))
+                            .finally(() => setFinanceBusy(false))
+                        }}
+                      >
+                        Finance
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-danger hover:bg-danger-soft"
                         onClick={() => setDeleting(project)}
                       >
@@ -344,6 +364,20 @@ export function ProjectsPage() {
             }
           }}
         />
+      </Modal>
+
+      <Modal
+        open={Boolean(financeProject)}
+        title={financeProject ? `${financeProject.name} — finance` : 'Finance'}
+        onClose={() => setFinanceProject(null)}
+      >
+        {financeBusy ? (
+          <p className="text-sm text-ink-muted">Loading…</p>
+        ) : financeSummary ? (
+          <FinanceSummaryPanel title="Project invoices" summary={financeSummary} />
+        ) : (
+          <p className="text-sm text-ink-muted">No finance data.</p>
+        )}
       </Modal>
 
       <ConfirmDialog

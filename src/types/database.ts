@@ -264,6 +264,75 @@ export type DocumentRecord = {
   created_by: string | null
 }
 
+export type InvoiceLifecycle = 'draft' | 'issued' | 'cancelled'
+export type InvoiceStatus = 'draft' | 'unpaid' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled'
+export type PaymentRecordStatus = 'completed' | 'void'
+
+export type Invoice = {
+  id: string
+  invoice_number: string
+  client_id: string
+  contact_id: string | null
+  project_id: string | null
+  deal_id: string | null
+  invoice_date: string
+  due_date: string | null
+  lifecycle: InvoiceLifecycle
+  subtotal: number
+  discount_amount: number
+  tax_amount: number
+  total: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
+export type InvoiceItem = {
+  id: string
+  invoice_id: string
+  description: string
+  quantity: number
+  unit_price: number
+  line_total: number
+  sort_order: number
+  created_at: string
+}
+
+export type Payment = {
+  id: string
+  invoice_id: string
+  client_id: string
+  project_id: string | null
+  amount: number
+  method: string
+  paid_at: string
+  reference: string | null
+  notes: string | null
+  status: PaymentRecordStatus
+  provider: string | null
+  provider_transaction_id: string | null
+  external_payment_id: string | null
+  provider_status: string | null
+  provider_metadata: Record<string, unknown> | null
+  created_at: string
+  created_by: string | null
+}
+
+export type FinancePaymentMethod = {
+  id: string
+  method_key: string
+  display_name: string
+  enabled: boolean
+  instructions: string | null
+  payment_url: string | null
+  username: string | null
+  email_or_phone: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 /** Lead Finder tables — see features/lead-finder/types.ts for rich shapes. */
 export type ProspectRow = {
   id: string
@@ -373,6 +442,10 @@ export type Database = {
       activities: TableDef<Activity>
       notes: TableDef<Note>
       documents: TableDef<DocumentRecord>
+      invoices: TableDef<Invoice>
+      invoice_items: TableDef<InvoiceItem>
+      payments: TableDef<Payment>
+      finance_payment_methods: TableDef<FinancePaymentMethod>
       prospect_searches: TableDef<ProspectSearchRow>
       prospects: TableDef<ProspectRow>
       prospect_lists: TableDef<ProspectListRow>
