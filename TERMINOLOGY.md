@@ -65,7 +65,7 @@ Quick contrast:
 | **Proposal** | A lightweight quote attached to a deal. Status only; no email send or Stripe charge. |
 | **Task** | A to-do, optionally linked to a client, deal, or project. |
 | **Project** | Delivery work after a deal is won (or created manually). |
-| **Invoice** | A bill to a client, usually for a project. Totals come from line items. **Download PDF** saves a file on this device; it does not email the client. |
+| **Invoice** | A bill to a client, usually for a project. Totals come from line items. **Download PDF** saves a file on this device; it does not email the client. **Delete** removes an unpaid invoice; **Cancel** keeps it in history. Paid invoices cannot be deleted. |
 | **Payment** | A manually recorded receipt against an invoice (Zelle, PayPal, etc. as labels only). |
 | **Payment options** | Company payment instructions/links from Finance Settings. Shown on the invoice view, not on the Create invoice form. |
 | **Balance due** | Invoice total minus completed payments. Never a separate editable field. |
