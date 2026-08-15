@@ -24,6 +24,9 @@ import {
   weightedValue,
   type DealFormValues,
 } from '@/features/pipeline/schemas'
+import { DealWorkspace } from '@/features/pipeline/DealWorkspace'
+import { SalesFollowUps } from '@/features/pipeline/SalesFollowUps'
+import { listOpenDealTasks, type TaskWithRelations } from '@/features/tasks/api'
 import type { Client, Deal, DealStage } from '@/types/database'
 
 export function PipelinePage() {
@@ -42,6 +45,8 @@ export function PipelinePage() {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dropStage, setDropStage] = useState<DealStage | null>(null)
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [workspaceDeal, setWorkspaceDeal] = useState<DealWithRelations | null>(null)
+  const [salesTasks, setSalesTasks] = useState<TaskWithRelations[]>([])
 
   const loadClients = useCallback(async () => {
     const data = await listClientOptions()
@@ -52,8 +57,9 @@ export function PipelinePage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await listPipelineDeals()
+      const [data, taskRows] = await Promise.all([listPipelineDeals(), listOpenDealTasks()])
       setDeals(data)
+      setSalesTasks(taskRows)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load pipeline')
     } finally {
@@ -203,7 +209,7 @@ export function PipelinePage() {
     <div>
       <PageHeader
         title="Sales Pipeline"
-        description="Deal stages live only on this board. Outreach on Leads does not move these cards. Winning a deal linked to a client marks them active and can start a project."
+        description="Deal stages live only on this board. Outreach on Leads does not move these cards. Open a deal for meetings, proposals, tasks, and timeline."
         actions={<Button onClick={() => openCreate('new_lead')}>Add deal</Button>}
       />
 
@@ -225,6 +231,8 @@ export function PipelinePage() {
           warn={overdueCount > 0}
         />
       </div>
+
+      <SalesFollowUps deals={deals} tasks={salesTasks} />
 
       {error ? (
         <p className="mb-4 border border-red-200 bg-danger-soft px-3 py-2 text-sm text-danger">
@@ -338,6 +346,9 @@ export function PipelinePage() {
                           <Button variant="secondary" size="sm" onClick={() => openEdit(deal)}>
                             Edit
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setWorkspaceDeal(deal)}>
+                            Open
+                          </Button>
                         </div>
                       </article>
                     ))
@@ -374,6 +385,13 @@ export function PipelinePage() {
           }}
         />
       </Modal>
+
+      <DealWorkspace
+        deal={workspaceDeal}
+        open={Boolean(workspaceDeal)}
+        onClose={() => setWorkspaceDeal(null)}
+        onChanged={load}
+      />
 
       <ConfirmDialog
         open={Boolean(deleting)}

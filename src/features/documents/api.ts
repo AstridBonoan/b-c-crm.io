@@ -12,6 +12,7 @@ import {
   toNullableUuid,
   type DocumentMetaValues,
 } from '@/features/documents/schemas'
+import { logDealActivity } from '@/features/pipeline/api'
 
 export const DOCUMENTS_BUCKET = 'crm-documents'
 
@@ -161,6 +162,21 @@ export async function uploadDocument(
   if (error) {
     await supabase.storage.from(DOCUMENTS_BUCKET).remove([storagePath])
     throw new Error(error.message)
+  }
+
+  if (data.deal_id) {
+    await logDealActivity({
+      deal: {
+        id: data.deal_id,
+        client_id: data.client_id,
+        contact_id: data.contact_id,
+        lead_id: data.lead_id,
+        name: data.name,
+      },
+      type: 'note',
+      summary: `Document added: ${data.name}`,
+      userId,
+    })
   }
 
   return data
