@@ -125,6 +125,15 @@ Open **Projects**. Update status and progress. Attach tasks, notes, and document
 
 Winning a deal does **not** auto-create an invoice.
 
+**Payment links are not on Create invoice.** Set them once for the company:
+
+1. Open **Finance** → **Settings** (`/finance/settings`).
+2. For each method (PayPal, Venmo, Cash App, Zelle, etc.), turn on **Show on invoices**.
+3. Fill **Payment URL / link**, username, email/phone, and instructions as needed. Save.
+4. Those options appear at the bottom of every invoice **view** (and print). Clicking a link does not mark the invoice paid.
+
+If Payment options are missing on an invoice, the methods are still off or empty in Settings.
+
 ---
 
 ## What each page is for
@@ -141,7 +150,7 @@ Winning a deal does **not** auto-create an invoice.
 | **Meetings** | Sales meetings linked to deals | Discovery, follow-up, presentation, outcome. |
 | **Proposals** | Lightweight quotes linked to deals | Track draft vs sent vs accepted. No Stripe. |
 | **Projects** | Delivery work | After win, or create by hand. **Finance** shows invoices for that project. |
-| **Finance** | Dashboard: billed, paid, outstanding, overdue, due soon, recent payments | Company money snapshot. Settings for payment instructions. |
+| **Finance** | Dashboard: billed, paid, outstanding, overdue, due soon, recent payments | Company money snapshot. **Settings** holds PayPal/Venmo/etc. links shown on all invoices. |
 | **Invoices** | Invoice table, create/edit, print view, payment history | Issue invoices. Record payments after you confirm them. |
 | **Payments** | List of recorded payments | Jump to the related invoice. |
 | **Tasks** | To-dos with due date, priority, status | Link to client, deal, or project when you can. |

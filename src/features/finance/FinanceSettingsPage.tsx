@@ -45,9 +45,9 @@ export function FinanceSettingsPage() {
           <MethodCard
             key={method.id}
             method={method}
-            onSaved={async () => {
+            onSaved={(next) => {
               setNotice('Saved')
-              await load()
+              setMethods((prev) => prev.map((row) => (row.id === next.id ? next : row)))
             }}
           />
         ))}
@@ -61,11 +61,11 @@ function MethodCard({
   onSaved,
 }: {
   method: FinancePaymentMethod
-  onSaved: () => Promise<void>
+  onSaved: (next: FinancePaymentMethod) => void
 }) {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const { register, handleSubmit } = useForm<PaymentMethodSettingsValues>({
+  const { register, handleSubmit, getValues } = useForm<PaymentMethodSettingsValues>({
     resolver: zodResolver(paymentMethodSettingsSchema),
     defaultValues: {
       display_name: method.display_name,
@@ -77,27 +77,46 @@ function MethodCard({
     },
   })
 
+  const persist = async (values: PaymentMethodSettingsValues) => {
+    setSubmitting(true)
+    setFormError(null)
+    try {
+      await updatePaymentMethod(method.id, values)
+      onSaved({
+        ...method,
+        display_name: values.display_name.trim(),
+        enabled: values.enabled,
+        instructions: values.instructions?.trim() || null,
+        payment_url: values.payment_url?.trim() || null,
+        username: values.username?.trim() || null,
+        email_or_phone: values.email_or_phone?.trim() || null,
+      })
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <Panel className="px-4 py-4">
       <form
         className="space-y-3"
-        onSubmit={handleSubmit(async (values) => {
-          setSubmitting(true)
-          setFormError(null)
-          try {
-            await updatePaymentMethod(method.id, values)
-            await onSaved()
-          } catch (err) {
-            setFormError(err instanceof Error ? err.message : 'Failed to save')
-          } finally {
-            setSubmitting(false)
-          }
-        })}
+        onSubmit={handleSubmit((values) => persist(values))}
       >
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium text-ink">{method.method_key}</p>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...register('enabled')} />
+            <input
+              type="checkbox"
+              {...register('enabled', {
+                onChange: (event) => {
+                  const values = getValues()
+                  values.enabled = event.target.checked
+                  void persist(values)
+                },
+              })}
+            />
             Show on invoices
           </label>
         </div>
