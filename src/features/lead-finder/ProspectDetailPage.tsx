@@ -130,9 +130,13 @@ export function ProspectDetailPage() {
     setLogSubmitting(true)
     setLogError(null)
     try {
+      const wasSaved = prospect.saved_to_crm
       await createProspectOutreach(prospect, values, user?.id)
       setLogOpen(false)
       await load({ silent: true })
+      if (!wasSaved) {
+        setNotice('Added to Leads. Open Leads to make them a client or add an opportunity.')
+      }
     } catch (err) {
       setLogError(err instanceof Error ? err.message : 'Failed to save outreach')
     } finally {
@@ -253,7 +257,7 @@ export function ProspectDetailPage() {
           <div>
             <h2 className="text-sm font-semibold text-ink">Outreach history</h2>
             <p className="mt-1 text-xs text-ink-muted">
-              How this prospect was contacted. This does not change lead status by itself.
+              How this prospect was contacted. Logging outreach also adds them to Leads.
             </p>
           </div>
           <Button size="sm" onClick={() => { setLogError(null); setLogOpen(true) }}>

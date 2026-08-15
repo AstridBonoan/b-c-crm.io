@@ -13,6 +13,7 @@ import type {
 import type { OutreachFormValues } from '@/features/lead-finder/schemas'
 import type { ProspectRow } from '@/types/database'
 import { createLead } from '@/features/leads/api'
+import type { LeadFormValues } from '@/features/leads/schemas'
 
 export type ProspectOutreachFilter =
   | 'all'
@@ -164,13 +165,40 @@ export async function createProspectOutreach(
   values: OutreachFormValues,
   userId: string | undefined,
 ): Promise<ProspectOutreach> {
-  const supabase = getSupabaseClient()
   const nextFollowUp = values.next_follow_up_at?.trim() || null
+  const crmStatus = leadStatusFromOutreach(values.result)
+
+  let leadId = prospect.crm_lead_id
+  if (!prospect.saved_to_crm) {
+    const saved = await saveProspectToCrm(
+      {
+        ...prospect,
+        last_contacted_at: values.contacted_at,
+        next_follow_up_at: nextFollowUp ?? prospect.next_follow_up_at,
+      },
+      userId,
+      {
+        status: crmStatus,
+        last_contacted_at: values.contacted_at,
+        next_follow_up_at: nextFollowUp,
+        pipelineStatus: 'contacted',
+      },
+    )
+    leadId = saved.leadId
+  } else if (leadId) {
+    await syncCrmLeadFromOutreach(leadId, {
+      status: crmStatus,
+      last_contacted_at: values.contacted_at,
+      next_follow_up_at: nextFollowUp,
+    })
+  }
+
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('prospect_outreach')
     .insert({
       prospect_id: prospect.id,
-      lead_id: prospect.crm_lead_id,
+      lead_id: leadId,
       method: values.method as ProspectOutreachMethod,
       contacted_at: values.contacted_at,
       result: values.result as ProspectOutreachResult,
@@ -192,6 +220,47 @@ export async function createProspectOutreach(
   if (updateError) throw new Error(updateError.message)
 
   return data as ProspectOutreach
+}
+
+function leadStatusFromOutreach(result: ProspectOutreachResult): LeadFormValues['status'] {
+  if (result === 'not_interested') return 'lost'
+  if (
+    result === 'interested' ||
+    result === 'meeting_scheduled' ||
+    result === 'proposal_requested' ||
+    result === 'follow_up_needed'
+  ) {
+    return 'following_up'
+  }
+  return 'contacted'
+}
+
+async function syncCrmLeadFromOutreach(
+  leadId: string,
+  values: {
+    status: LeadFormValues['status']
+    last_contacted_at: string
+    next_follow_up_at: string | null
+  },
+): Promise<void> {
+  const supabase = getSupabaseClient()
+  const { data: lead, error: loadError } = await supabase
+    .from('leads')
+    .select('status')
+    .eq('id', leadId)
+    .maybeSingle()
+  if (loadError) throw new Error(loadError.message)
+  if (!lead || lead.status === 'converted') return
+
+  const { error } = await supabase
+    .from('leads')
+    .update({
+      status: values.status,
+      last_contacted_at: values.last_contacted_at,
+      next_follow_up_at: values.next_follow_up_at,
+    })
+    .eq('id', leadId)
+  if (error) throw new Error(error.message)
 }
 
 export type LatestOutreach = {
@@ -409,8 +478,15 @@ function matchesCrmBusiness(row: CrmBusinessRow, prospect: Prospect): boolean {
 }
 
 export type SaveProspectToCrmResult =
-  | { status: 'already_saved'; where: 'leads' | 'clients' }
+  | { status: 'already_saved'; where: 'leads' | 'clients'; leadId: string | null }
   | { status: 'created'; leadId: string }
+
+type SaveProspectExtras = {
+  status?: LeadFormValues['status']
+  last_contacted_at?: string
+  next_follow_up_at?: string | null
+  pipelineStatus?: Prospect['pipeline_status']
+}
 
 async function findExistingCrmMatch(prospect: Prospect): Promise<{
   where: 'leads' | 'clients'
@@ -461,6 +537,7 @@ async function findExistingCrmMatch(prospect: Prospect): Promise<{
 export async function saveProspectToCrm(
   prospect: Prospect,
   userId: string | undefined,
+  extras?: SaveProspectExtras,
 ): Promise<SaveProspectToCrmResult> {
   const existing = await findExistingCrmMatch(prospect)
   if (existing) {
@@ -474,7 +551,14 @@ export async function saveProspectToCrm(
       })
       .eq('id', prospect.id)
     if (linkError) throw new Error(linkError.message)
-    return { status: 'already_saved', where: existing.where }
+    if (existing.leadId && extras?.last_contacted_at) {
+      await syncCrmLeadFromOutreach(existing.leadId, {
+        status: extras.status ?? 'contacted',
+        last_contacted_at: extras.last_contacted_at,
+        next_follow_up_at: extras.next_follow_up_at ?? prospect.next_follow_up_at,
+      })
+    }
+    return { status: 'already_saved', where: existing.where, leadId: existing.leadId }
   }
 
   const address = [prospect.address, prospect.city, prospect.state, prospect.zip]
@@ -494,11 +578,11 @@ export async function saveProspectToCrm(
       company_name: prospect.business_name,
       source: 'Lead Finder',
       service_interested: prospect.industry ?? '',
-      status: 'new',
+      status: extras?.status ?? 'new',
       estimated_value: '',
       notes,
-      last_contacted_at: '',
-      next_follow_up_at: prospect.next_follow_up_at ?? '',
+      last_contacted_at: extras?.last_contacted_at ?? prospect.last_contacted_at ?? '',
+      next_follow_up_at: extras?.next_follow_up_at ?? prospect.next_follow_up_at ?? '',
     },
     userId,
   )
@@ -510,7 +594,7 @@ export async function saveProspectToCrm(
       saved_to_crm: true,
       crm_lead_id: lead.id,
       crm_client_id: null,
-      pipeline_status: 'researching',
+      pipeline_status: extras?.pipelineStatus ?? 'researching',
     })
     .eq('id', prospect.id)
   if (error) throw new Error(error.message)
