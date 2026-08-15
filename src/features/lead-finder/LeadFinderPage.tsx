@@ -49,6 +49,7 @@ export function LeadFinderPage() {
     hasWebsite: 'all',
     outreach: 'all',
     sort: 'newest',
+    showInLeads: false,
     searchId: null,
   })
   const [snapshot, setSnapshot] = useState<OutreachSnapshot | null>(null)
@@ -102,6 +103,7 @@ export function LeadFinderPage() {
           hasWebsite: 'all',
           outreach: 'all',
           sort: 'newest',
+          showInLeads: false,
           searchId,
         }),
       ])
@@ -113,6 +115,7 @@ export function LeadFinderPage() {
         hasWebsite: 'all',
           outreach: 'all',
           sort: 'newest',
+          showInLeads: false,
           searchId: search.id,
       })
       setProspects(rows)
@@ -417,13 +420,23 @@ export function LeadFinderPage() {
           <option value="newest">Newest</option>
           <option value="name_asc">Name A–Z</option>
         </select>
+        <Button
+          variant="secondary"
+          type="button"
+          onClick={() => void applyFilters({ showInLeads: !filters.showInLeads })}
+        >
+          {filters.showInLeads ? 'Hide names already in Leads' : 'Show already in Leads'}
+        </Button>
         <Button variant="secondary" type="button" onClick={() => void toggleShowAll()}>
           {showAllSearches ? 'Show latest search only' : 'Show all saved prospects'}
         </Button>
       </div>
 
       {activeSearchLabel && !showAllSearches ? (
-        <p className="mb-3 text-xs text-ink-muted">Showing results for: {activeSearchLabel}</p>
+        <p className="mb-3 text-xs text-ink-muted">
+          Showing results for: {activeSearchLabel}
+          {filters.showInLeads ? ' · Including names already in Leads' : ' · Hiding names already in Leads'}
+        </p>
       ) : null}
 
       {warning ? (
@@ -448,10 +461,31 @@ export function LeadFinderPage() {
           {searching ? 'Discovering businesses…' : 'Loading prospects…'}
         </Panel>
       ) : prospects.length === 0 ? (
-        <EmptyState
-          title="No search yet"
-          description="Run a search to find local businesses. Nothing is loaded until you search."
-        />
+        sessionSearchId || showAllSearches ? (
+          <EmptyState
+            title="No open prospects here"
+            description={
+              filters.showInLeads
+                ? 'Nothing matches these filters.'
+                : 'Contacted names are on Leads. Show already in Leads to see them here again.'
+            }
+            action={
+              !filters.showInLeads ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => void applyFilters({ showInLeads: true })}
+                >
+                  Show already in Leads
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No search yet"
+            description="Run a search to find local businesses. Nothing is loaded until you search."
+          />
+        )
       ) : (
         <Panel className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">

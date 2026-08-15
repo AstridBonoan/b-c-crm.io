@@ -31,6 +31,8 @@ export type ProspectFilters = {
   hasWebsite: 'all' | 'yes' | 'no'
   outreach: ProspectOutreachFilter
   sort: 'name_asc' | 'newest'
+  /** When false, hide prospects already saved as CRM leads. */
+  showInLeads: boolean
   /** When set, only show prospects from this search run. */
   searchId?: string | null
 }
@@ -47,6 +49,7 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   if (filters.industry !== 'all') query = query.ilike('industry', `%${filters.industry}%`)
   if (filters.hasWebsite === 'yes') query = query.eq('has_website', true)
   if (filters.hasWebsite === 'no') query = query.eq('has_website', false)
+  if (!filters.showInLeads) query = query.eq('saved_to_crm', false)
 
   const today = new Date().toISOString().slice(0, 10)
   if (filters.outreach === 'not_contacted') query = query.is('last_contacted_at', null)
@@ -441,6 +444,7 @@ export async function runProspectSearch(
     hasWebsite: 'all',
     outreach: 'all',
     sort: 'newest',
+    showInLeads: false,
     searchId: searchRow.id,
   })
 
