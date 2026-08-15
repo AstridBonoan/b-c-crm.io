@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuth } from '@/features/auth/useAuth'
 import { InvoicePrintView } from '@/features/finance/InvoicePrintView'
+import { downloadInvoicePdf } from '@/features/finance/downloadInvoicePdf'
 import { InvoiceForm } from '@/features/finance/InvoiceForm'
 import { PaymentForm } from '@/features/finance/PaymentForm'
 import { InvoiceStatusBadge } from '@/features/finance/InvoiceStatusBadge'
@@ -37,6 +38,7 @@ export function InvoiceDetailPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -92,6 +94,19 @@ export function InvoiceDetailPage() {
     }
   }
 
+  const downloadPdf = async () => {
+    if (!invoice) return
+    setDownloading(true)
+    setError(null)
+    try {
+      await downloadInvoicePdf(invoice, methods)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download invoice')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const copySummary = async () => {
     if (!invoice) return
     const text = [
@@ -109,11 +124,14 @@ export function InvoiceDetailPage() {
     <div>
       <PageHeader
         title={invoice?.invoice_number ?? 'Invoice'}
-        description="Print or copy this invoice. Record payment only after you confirm the client paid."
+        description="Download a PDF to attach in Gmail yourself, or print. Record payment only after you confirm the client paid."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => navigate('/invoices')}>
               Back
+            </Button>
+            <Button variant="secondary" onClick={() => void downloadPdf()} disabled={!invoice || downloading}>
+              {downloading ? 'Downloading…' : 'Download PDF'}
             </Button>
             <Button variant="secondary" onClick={() => window.print()}>
               Print

@@ -119,7 +119,7 @@ Open **Projects**. Update status and progress. Attach tasks, notes, and document
 1. Open **Invoices** → **Create invoice**. Pick client and project. Optionally **Prefill from won deal**.
 2. Add line items. Totals calculate from quantity × price, minus discount, plus tax.
 3. Save as Draft or Issue now (Unpaid).
-4. Open the invoice → **Print** or **Copy summary**. Payment options on the invoice come from **Finance → Settings**. Clicking a PayPal/Venmo/etc. link does **not** mark it paid.
+4. Open the invoice → **Download PDF** (saves to this device so you can attach it in Gmail yourself), **Print**, or **Copy summary**. Payment options on the invoice come from **Finance → Settings**. Clicking a PayPal/Venmo/etc. link does **not** mark it paid. The CRM does not send email.
 5. When the client pays outside the CRM, **Record payment** (full or partial). Status becomes Partially Paid or Paid. Overdue is automatic after the due date if a balance remains.
 6. **Finance** dashboard shows billed, paid, outstanding, overdue, and recent payments. Client and Project rows have a **Finance** button for that record’s summary.
 
@@ -151,7 +151,7 @@ If Payment options are missing on an invoice, the methods are still off or empty
 | **Proposals** | Lightweight quotes linked to deals | Track draft vs sent vs accepted. No Stripe. |
 | **Projects** | Delivery work | After win, or create by hand. **Finance** shows invoices for that project. |
 | **Finance** | Dashboard: billed, paid, outstanding, overdue, due soon, recent payments | Company money snapshot. **Settings** holds PayPal/Venmo/etc. links shown on all invoices. |
-| **Invoices** | Invoice table, create/edit, print view, payment history | Issue invoices. Record payments after you confirm them. |
+| **Invoices** | Invoice table, create/edit, print view, payment history | Issue invoices. **Download PDF** to this device, then attach it in Gmail yourself. Record payments after you confirm them. |
 | **Payments** | List of recorded payments | Jump to the related invoice. |
 | **Tasks** | To-dos with due date, priority, status | Link to client, deal, or project when you can. |
 | **Activities** | Chronological interaction log | Shared history. Deal timeline reuses this. |
@@ -182,7 +182,7 @@ If Payment options are missing on an invoice, the methods are still off or empty
 
 ## What this system does not do
 
-- It does not email prospects or send invoices by Gmail.
+- It does not email prospects or send invoices by Gmail. Download the PDF and attach it yourself.
 - It does not charge cards or connect to Stripe, PayPal, Venmo, Cash App, or Zelle APIs.
 - Payment methods on invoices are instructions/links only.
 - It does not score leads with AI.
