@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  PROSPECT_PIPELINE_LABELS,
+  type ProspectPipelineStatus,
+} from '@/features/lead-finder/types'
 
 export const prospectSearchSchema = z.object({
   industry: z.string().trim().min(1, 'Industry is required'),
@@ -71,4 +75,39 @@ export function formatOutreachDate(value: string | null | undefined): string {
   const date = new Date(`${value.slice(0, 10)}T00:00:00`)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+export function prospectBriefSummary(
+  prospect: {
+    industry: string | null
+    city: string | null
+    state: string | null
+    pipeline_status: string
+    last_contacted_at: string | null
+  },
+  latest?: { method: string; result: string; contacted_at: string } | null,
+): { businessLine: string; outreachLine: string } {
+  const place = [prospect.city, prospect.state].filter(Boolean).join(', ')
+  const status =
+    PROSPECT_PIPELINE_LABELS[prospect.pipeline_status as ProspectPipelineStatus] ??
+    prospect.pipeline_status
+  const businessLine = [prospect.industry, place, status].filter(Boolean).join(' · ')
+
+  if (!latest) {
+    return {
+      businessLine,
+      outreachLine: prospect.last_contacted_at
+        ? `Last contact ${formatOutreachDate(prospect.last_contacted_at)}`
+        : 'No outreach yet',
+    }
+  }
+
+  return {
+    businessLine,
+    outreachLine: [
+      outreachMethodLabel(latest.method),
+      outreachResultLabel(latest.result),
+      formatOutreachDate(latest.contacted_at),
+    ].join(' · '),
+  }
 }

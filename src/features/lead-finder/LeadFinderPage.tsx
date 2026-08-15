@@ -19,8 +19,9 @@ import {
   type ProspectFilters,
   type ProspectOutreachFilter,
 } from '@/features/lead-finder/api'
-import { formatOutreachDate } from '@/features/lead-finder/schemas'
 import {
+  formatOutreachDate,
+  prospectBriefSummary,
   prospectSearchSchema,
   type ProspectSearchFormValues,
 } from '@/features/lead-finder/schemas'
@@ -308,23 +309,31 @@ export function LeadFinderPage() {
             <p className="mt-2 text-sm text-ink-muted">No follow-up dates on these prospects yet.</p>
           ) : (
             <ul className="mt-3 divide-y divide-line/70">
-              {upcomingFollowUps(prospects).map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <Link to={`/lead-finder/${p.id}`} className="font-medium text-ink hover:underline">
-                    {p.business_name}
-                  </Link>
-                  <span
-                    className={
-                      p.next_follow_up_at &&
-                      p.next_follow_up_at.slice(0, 10) < new Date().toISOString().slice(0, 10)
-                        ? 'text-danger'
-                        : 'text-ink-muted'
-                    }
-                  >
-                    {formatOutreachDate(p.next_follow_up_at)}
-                  </span>
-                </li>
-              ))}
+              {upcomingFollowUps(prospects).map((p) => {
+                const summary = prospectBriefSummary(p, snapshot?.latestByProspectId[p.id])
+                const overdue =
+                  p.next_follow_up_at &&
+                  p.next_follow_up_at.slice(0, 10) < new Date().toISOString().slice(0, 10)
+                return (
+                  <li key={p.id} className="flex items-start justify-between gap-3 py-2.5 text-sm">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/lead-finder/${p.id}`}
+                        className="font-medium text-ink hover:underline"
+                      >
+                        {p.business_name}
+                      </Link>
+                      <p className="mt-0.5 truncate text-xs text-ink-muted">{summary.businessLine}</p>
+                      <p className="truncate text-xs text-ink-muted">{summary.outreachLine}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-xs ${overdue ? 'font-medium text-danger' : 'text-ink-muted'}`}
+                    >
+                      {formatOutreachDate(p.next_follow_up_at)}
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </Panel>
@@ -433,6 +442,9 @@ export function LeadFinderPage() {
                       {p.business_name}
                     </Link>
                     <p className="text-xs text-ink-muted">{p.industry}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {prospectBriefSummary(p, snapshot?.latestByProspectId[p.id]).outreachLine}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
                     {[p.city, p.state].filter(Boolean).join(', ')}
