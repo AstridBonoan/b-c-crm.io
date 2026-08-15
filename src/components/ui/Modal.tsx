@@ -8,9 +8,10 @@ type ModalProps = {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  wide?: boolean
 }
 
-export function Modal({ open, title, onClose, children, footer }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, wide = false }: ModalProps) {
   useEffect(() => {
     if (!open) return
     const previous = document.body.style.overflow
@@ -35,7 +36,9 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
-          className="relative z-10 flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col border border-line bg-white shadow-[var(--shadow-float)] sm:max-h-[calc(100vh-3rem)] animate-scale-in"
+          className={`relative z-10 flex max-h-[calc(100vh-2rem)] w-full flex-col border border-line bg-white shadow-[var(--shadow-float)] sm:max-h-[calc(100vh-3rem)] animate-scale-in ${
+            wide ? 'max-w-3xl' : 'max-w-lg'
+          }`}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
             <h2 id="modal-title" className="text-lg font-semibold text-ink">

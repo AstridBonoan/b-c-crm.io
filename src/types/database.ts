@@ -98,6 +98,7 @@ export type Deal = {
   next_follow_up_at: string | null
   assigned_to: string | null
   notes: string | null
+  closed_at: string | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -138,6 +139,57 @@ export type Project = {
   assigned_to: string | null
   status: ProjectStatus
   progress: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
+export type MeetingType =
+  | 'discovery'
+  | 'sales_meeting'
+  | 'consultation'
+  | 'follow_up'
+  | 'presentation'
+  | 'other'
+
+export type MeetingOutcome =
+  | 'interested'
+  | 'needs_follow_up'
+  | 'proposal_requested'
+  | 'not_interested'
+  | 'won'
+  | 'lost'
+  | 'other'
+
+export type DealMeeting = {
+  id: string
+  deal_id: string
+  client_id: string | null
+  contact_id: string | null
+  meeting_at: string
+  meeting_type: MeetingType
+  location_or_link: string | null
+  notes: string | null
+  outcome: MeetingOutcome | null
+  next_action: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
+export type ProposalStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+
+export type DealProposal = {
+  id: string
+  deal_id: string
+  client_id: string | null
+  contact_id: string | null
+  service: string | null
+  amount: number | null
+  description: string | null
+  status: ProposalStatus
+  sent_at: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -313,6 +365,8 @@ export type Database = {
       contacts: TableDef<Contact>
       leads: TableDef<Lead>
       deals: TableDef<Deal>
+      deal_meetings: TableDef<DealMeeting>
+      deal_proposals: TableDef<DealProposal>
       customers: TableDef<Customer>
       projects: TableDef<Project>
       tasks: TableDef<Task>

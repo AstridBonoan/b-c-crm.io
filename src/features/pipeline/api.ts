@@ -81,6 +81,15 @@ export async function listPipelineDeals(): Promise<DealWithRelations[]> {
   return (data as DealWithRelations[] | null) ?? []
 }
 
+function todayDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function closedAtForStage(stage: DealStage, previousClosedAt?: string | null): string | null {
+  if (stage !== 'won' && stage !== 'lost') return null
+  return previousClosedAt ?? todayDate()
+}
+
 function toPayload(values: DealFormValues, userId: string | undefined, includeCreatedBy: boolean) {
   const probability = parseProbability(values.probability, values.stage)
   return {
@@ -103,15 +112,16 @@ function toPayload(values: DealFormValues, userId: string | undefined, includeCr
   }
 }
 
-async function logDealActivity(input: {
+export async function logDealActivity(input: {
   deal: Pick<Deal, 'id' | 'client_id' | 'contact_id' | 'lead_id' | 'name'>
   summary: string
   details?: string | null
+  type?: string
   userId?: string
 }) {
   const supabase = getSupabaseClient()
   const { error } = await supabase.from('activities').insert({
-    type: 'note',
+    type: input.type ?? 'note',
     summary: input.summary,
     details: input.details ?? null,
     deal_id: input.deal.id,
@@ -183,7 +193,7 @@ export async function createDeal(
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('deals')
-    .insert(toPayload(values, userId, true))
+    .insert({ ...toPayload(values, userId, true), closed_at: closedAtForStage(values.stage) })
     .select('*')
     .single()
 
@@ -234,6 +244,7 @@ export async function updateDeal(
       next_action: payload.next_action,
       next_follow_up_at: payload.next_follow_up_at,
       notes: payload.notes,
+      closed_at: closedAtForStage(payload.stage, previous.closed_at),
     })
     .eq('id', id)
     .select('*')
@@ -245,6 +256,12 @@ export async function updateDeal(
     await logDealActivity({
       deal: data,
       summary: `Deal moved from ${stageLabel(previous.stage)} to ${stageLabel(data.stage)}`,
+      userId,
+    })
+  } else {
+    await logDealActivity({
+      deal: data,
+      summary: 'Deal details updated',
       userId,
     })
   }
@@ -276,6 +293,7 @@ export async function updateDealStage(
     .update({
       stage,
       probability: STAGE_PROBABILITY[stage],
+      closed_at: closedAtForStage(stage, previous.closed_at),
     })
     .eq('id', id)
     .select('*')
@@ -348,6 +366,28 @@ export async function createDealFromLead(
     },
     userId,
   )
+}
+
+export async function getDeal(id: string): Promise<DealWithRelations> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('deals')
+    .select('*, clients(id, name, client_type), contacts(id, first_name, last_name)')
+    .eq('id', id)
+    .single()
+  if (error) throw new Error(error.message)
+  return data as DealWithRelations
+}
+
+export async function listDealOptions(): Promise<Pick<Deal, 'id' | 'name' | 'client_id' | 'contact_id' | 'service' | 'estimated_value' | 'proposal_amount' | 'stage'>[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('deals')
+    .select('id, name, client_id, contact_id, service, estimated_value, proposal_amount, stage')
+    .order('updated_at', { ascending: false })
+    .limit(300)
+  if (error) throw new Error(error.message)
+  return data ?? []
 }
 
 export async function deleteDeal(id: string): Promise<void> {

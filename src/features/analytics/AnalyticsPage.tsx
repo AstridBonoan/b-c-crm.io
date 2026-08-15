@@ -93,8 +93,24 @@ export function AnalyticsPage() {
         value: formatAnalyticsMoney(data.summary.openPipelineValue),
       },
       {
+        label: 'Weighted pipeline',
+        value: formatAnalyticsMoney(data.summary.weightedPipelineValue),
+      },
+      {
         label: 'Won revenue',
         value: formatAnalyticsMoney(data.summary.wonRevenue),
+      },
+      {
+        label: 'Avg won deal',
+        value: formatAnalyticsMoney(data.summary.averageDealValue),
+      },
+      {
+        label: 'Won this month',
+        value: String(data.summary.wonThisMonth),
+      },
+      {
+        label: 'Lost this month',
+        value: String(data.summary.lostThisMonth),
       },
       {
         label: 'Active projects',
@@ -272,6 +288,38 @@ export function AnalyticsPage() {
                     dot={false}
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Deals by service"
+              description="How opportunities cluster by service."
+              empty={!data?.dealsByService.some((item) => item.count > 0)}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.dealsByService ?? []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--ink-muted)', fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fill: 'var(--ink-muted)', fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" name="Deals" fill={COLORS.teal} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Deals by source"
+              description="Where pipeline opportunities originated."
+              empty={!data?.dealsBySource.some((item) => item.count > 0)}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.dealsBySource ?? []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--ink-muted)', fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fill: 'var(--ink-muted)', fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" name="Deals" fill={COLORS.blue} radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </ChartCard>
 

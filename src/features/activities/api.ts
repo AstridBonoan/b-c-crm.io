@@ -136,6 +136,19 @@ export async function listActivities(
   return (data as ActivityWithRelations[] | null) ?? []
 }
 
+export async function listActivitiesForDeal(dealId: string): Promise<ActivityWithRelations[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('activities')
+    .select(
+      '*, clients(id, name), contacts(id, first_name, last_name), leads(id, source, service_interested, status), deals(id, name), projects(id, name), tasks(id, title)',
+    )
+    .eq('deal_id', dealId)
+    .order('occurred_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data as ActivityWithRelations[] | null) ?? []
+}
+
 function toPayload(values: ActivityFormValues, userId: string | undefined) {
   return {
     type: values.type,

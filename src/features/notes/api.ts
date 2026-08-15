@@ -8,6 +8,7 @@ import type {
   Project,
 } from '@/types/database'
 import { toNullableUuid, type NoteFormValues } from '@/features/notes/schemas'
+import { logDealActivity } from '@/features/pipeline/api'
 
 export type NoteWithRelations = Note & {
   clients: Pick<Client, 'id' | 'name'> | null
@@ -132,6 +133,21 @@ export async function createNote(
     .single()
 
   if (error) throw new Error(error.message)
+  if (data.deal_id) {
+    await logDealActivity({
+      deal: {
+        id: data.deal_id,
+        client_id: data.client_id,
+        contact_id: data.contact_id,
+        lead_id: data.lead_id,
+        name: '',
+      },
+      type: 'note',
+      summary: 'Note added',
+      details: data.body,
+      userId,
+    })
+  }
   return data
 }
 

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
-import { PIPELINE_STAGES } from '@/features/pipeline/schemas'
+import { PIPELINE_STAGES, isOpenStage, weightedValue } from '@/features/pipeline/schemas'
 import { LEAD_STATUSES } from '@/features/leads/schemas'
 import { PROJECT_STATUSES } from '@/features/projects/schemas'
 import { ACTIVITY_TYPES } from '@/features/activities/schemas'
@@ -28,7 +28,11 @@ export type MonthPoint = {
 export type AnalyticsSummary = {
   winRate: number
   openPipelineValue: number
+  weightedPipelineValue: number
   wonRevenue: number
+  lostThisMonth: number
+  wonThisMonth: number
+  averageDealValue: number
   activeProjects: number
 }
 
@@ -39,6 +43,8 @@ export type AnalyticsData = {
   leadsByStatus: NamedCount[]
   projectsByStatus: NamedCount[]
   activitiesByType: NamedCount[]
+  dealsByService: NamedCount[]
+  dealsBySource: NamedCount[]
   monthlyTrend: MonthPoint[]
 }
 
@@ -89,7 +95,7 @@ export async function loadAnalytics(): Promise<AnalyticsData> {
     supabase.from('leads').select('status, created_at'),
     supabase
       .from('deals')
-      .select('stage, estimated_value, proposal_amount, created_at'),
+      .select('stage, estimated_value, proposal_amount, probability, service, source, created_at, closed_at'),
     supabase.from('projects').select('status'),
     supabase.from('activities').select('type'),
   ])
@@ -107,7 +113,11 @@ export async function loadAnalytics(): Promise<AnalyticsData> {
           stage: DealStage
           estimated_value: number | null
           proposal_amount: number | null
+          probability: number | null
+          service: string | null
+          source: string | null
           created_at: string
+          closed_at: string | null
         }[]
       | null) ?? []
   const projects = (projectsResult.data as { status: ProjectStatus }[] | null) ?? []
@@ -174,9 +184,21 @@ export async function loadAnalytics(): Promise<AnalyticsData> {
 
   const closed = deals.filter((deal) => deal.stage === 'won' || deal.stage === 'lost')
   const won = deals.filter((deal) => deal.stage === 'won')
-  const open = deals.filter(
-    (deal) => deal.stage !== 'won' && deal.stage !== 'lost',
-  )
+  const open = deals.filter((deal) => isOpenStage(deal.stage))
+  const monthPrefix = new Date().toISOString().slice(0, 7)
+  const wonValues = won.map((deal) => money(deal.proposal_amount ?? deal.estimated_value))
+
+  const countBy = (keyFn: (deal: (typeof deals)[number]) => string) => {
+    const map = new Map<string, number>()
+    for (const deal of deals) {
+      const key = keyFn(deal)
+      map.set(key, (map.get(key) ?? 0) + 1)
+    }
+    return [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([label, count]) => ({ key: label, label, count }))
+  }
 
   return {
     summary: {
@@ -185,10 +207,18 @@ export async function loadAnalytics(): Promise<AnalyticsData> {
         (sum, deal) => sum + money(deal.proposal_amount ?? deal.estimated_value),
         0,
       ),
-      wonRevenue: won.reduce(
-        (sum, deal) => sum + money(deal.proposal_amount ?? deal.estimated_value),
-        0,
-      ),
+      weightedPipelineValue: open.reduce((sum, deal) => sum + weightedValue(deal), 0),
+      wonRevenue: wonValues.reduce((sum, value) => sum + value, 0),
+      lostThisMonth: deals.filter(
+        (deal) => deal.stage === 'lost' && deal.closed_at?.startsWith(monthPrefix),
+      ).length,
+      wonThisMonth: deals.filter(
+        (deal) => deal.stage === 'won' && deal.closed_at?.startsWith(monthPrefix),
+      ).length,
+      averageDealValue:
+        wonValues.length === 0
+          ? 0
+          : Math.round(wonValues.reduce((sum, value) => sum + value, 0) / wonValues.length),
       activeProjects: projects.filter((project) => project.status !== 'completed').length,
     },
     dealsByStage: PIPELINE_STAGES.map((stage) => ({
@@ -218,6 +248,8 @@ export async function loadAnalytics(): Promise<AnalyticsData> {
       label: type.label,
       count: activityTypeCounts.get(type.value) ?? 0,
     })).filter((item) => item.count > 0),
+    dealsByService: countBy((deal) => deal.service?.trim() || 'Unspecified'),
+    dealsBySource: countBy((deal) => deal.source?.trim() || 'Unspecified'),
     monthlyTrend: months.map((key) => ({
       month: key,
       label: monthLabel(key),

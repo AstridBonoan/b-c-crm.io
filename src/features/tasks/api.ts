@@ -9,6 +9,7 @@ import type {
   TaskStatus,
 } from '@/types/database'
 import { toNullable, toNullableUuid, type TaskFormValues } from '@/features/tasks/schemas'
+import { logDealActivity } from '@/features/pipeline/api'
 
 export type TaskWithRelations = Task & {
   clients: Pick<Client, 'id' | 'name'> | null
@@ -104,6 +105,33 @@ export async function listTasks(filters: TaskFilters): Promise<TaskWithRelations
   return (data as TaskWithRelations[] | null) ?? []
 }
 
+export async function listTasksForDeal(dealId: string): Promise<TaskWithRelations[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(
+      '*, clients(id, name), contacts(id, first_name, last_name), deals(id, name), projects(id, name)',
+    )
+    .eq('deal_id', dealId)
+    .order('due_date', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data as TaskWithRelations[] | null) ?? []
+}
+
+export async function listOpenDealTasks(): Promise<TaskWithRelations[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(
+      '*, clients(id, name), contacts(id, first_name, last_name), deals(id, name), projects(id, name)',
+    )
+    .not('deal_id', 'is', null)
+    .not('status', 'in', '(done,cancelled)')
+    .order('due_date', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data as TaskWithRelations[] | null) ?? []
+}
+
 function toPayload(values: TaskFormValues, userId: string | undefined) {
   return {
     title: values.title.trim(),
@@ -132,6 +160,20 @@ export async function createTask(
     .single()
 
   if (error) throw new Error(error.message)
+  if (data.deal_id) {
+    await logDealActivity({
+      deal: {
+        id: data.deal_id,
+        client_id: data.client_id,
+        contact_id: data.contact_id,
+        lead_id: null,
+        name: data.title,
+      },
+      type: 'follow_up',
+      summary: `Follow-up created: ${data.title}`,
+      userId,
+    })
+  }
   return data
 }
 
@@ -156,6 +198,19 @@ export async function updateTask(id: string, values: TaskFormValues): Promise<Ta
     .single()
 
   if (error) throw new Error(error.message)
+  if (data.deal_id && (data.status === 'done' || data.status === 'cancelled')) {
+    await logDealActivity({
+      deal: {
+        id: data.deal_id,
+        client_id: data.client_id,
+        contact_id: data.contact_id,
+        lead_id: null,
+        name: data.title,
+      },
+      type: 'follow_up',
+      summary: `Follow-up completed: ${data.title}`,
+    })
+  }
   return data
 }
 

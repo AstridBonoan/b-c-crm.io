@@ -14,6 +14,10 @@ export type DashboardMetrics = {
   wonValue: number
   overdueFollowUps: number
   projectRevenue: number
+  upcomingMeetings: number
+  openProposals: number
+  wonThisMonth: number
+  lostThisMonth: number
 }
 
 export type DashboardActivity = Pick<
@@ -68,11 +72,13 @@ export async function loadDashboard(): Promise<DashboardData> {
     projectsResult,
     activitiesResult,
     tasksResult,
+    meetingsResult,
+    proposalsResult,
   ] = await Promise.all([
     supabase.from('leads').select('status'),
     supabase
       .from('deals')
-      .select('stage, estimated_value, proposal_amount, probability, next_follow_up_at'),
+      .select('stage, estimated_value, proposal_amount, probability, next_follow_up_at, closed_at'),
     supabase.from('clients').select('client_status'),
     supabase.from('projects').select('status, project_value'),
     supabase
@@ -86,6 +92,8 @@ export async function loadDashboard(): Promise<DashboardData> {
       .not('status', 'in', '(done,cancelled)')
       .order('due_date', { ascending: true })
       .limit(6),
+    supabase.from('deal_meetings').select('meeting_at, outcome'),
+    supabase.from('deal_proposals').select('status'),
   ])
 
   if (leadsResult.error) throw new Error(leadsResult.error.message)
@@ -94,6 +102,8 @@ export async function loadDashboard(): Promise<DashboardData> {
   if (projectsResult.error) throw new Error(projectsResult.error.message)
   if (activitiesResult.error) throw new Error(activitiesResult.error.message)
   if (tasksResult.error) throw new Error(tasksResult.error.message)
+  if (meetingsResult.error) throw new Error(meetingsResult.error.message)
+  if (proposalsResult.error) throw new Error(proposalsResult.error.message)
 
   const leads = (leadsResult.data as { status: LeadStatus }[] | null) ?? []
   const deals =
@@ -104,6 +114,7 @@ export async function loadDashboard(): Promise<DashboardData> {
           proposal_amount: number | null
           probability: number | null
           next_follow_up_at: string | null
+          closed_at: string | null
         }[]
       | null) ?? []
   const clients = (clientsResult.data as { client_status: string }[] | null) ?? []
@@ -116,6 +127,12 @@ export async function loadDashboard(): Promise<DashboardData> {
     ACTIVE_PROJECT_STATUSES.includes(project.status),
   )
   const completedProjects = projects.filter((project) => project.status === 'completed')
+  const monthPrefix = new Date().toISOString().slice(0, 7)
+  const inThisMonth = (value: string | null) => Boolean(value && value.startsWith(monthPrefix))
+  const meetings =
+    (meetingsResult.data as { meeting_at: string; outcome: string | null }[] | null) ?? []
+  const proposals = (proposalsResult.data as { status: string }[] | null) ?? []
+  const now = Date.now()
 
   const metrics: DashboardMetrics = {
     newLeads: leads.filter((lead) => lead.status === 'new').length,
@@ -135,6 +152,12 @@ export async function loadDashboard(): Promise<DashboardData> {
       .reduce((sum, deal) => sum + money(deal.proposal_amount ?? deal.estimated_value), 0),
     overdueFollowUps: deals.filter((deal) => isFollowUpOverdue(deal)).length,
     projectRevenue: activeProjects.reduce((sum, project) => sum + money(project.project_value), 0),
+    upcomingMeetings: meetings.filter(
+      (row) => !row.outcome && new Date(row.meeting_at).getTime() >= now,
+    ).length,
+    openProposals: proposals.filter((row) => row.status === 'draft' || row.status === 'sent').length,
+    wonThisMonth: deals.filter((deal) => deal.stage === 'won' && inThisMonth(deal.closed_at)).length,
+    lostThisMonth: deals.filter((deal) => deal.stage === 'lost' && inThisMonth(deal.closed_at)).length,
   }
 
   const recentActivities =

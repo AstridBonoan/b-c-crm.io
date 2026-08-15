@@ -8,6 +8,8 @@ import { ContactsPage } from '@/features/contacts/ContactsPage'
 import { LeadsPage } from '@/features/leads/LeadsPage'
 import { PipelinePage } from '@/features/pipeline/PipelinePage'
 import { DealsPage } from '@/features/deals/DealsPage'
+import { MeetingsPage } from '@/features/meetings/MeetingsPage'
+import { ProposalsPage } from '@/features/proposals/ProposalsPage'
 import { ProjectsPage } from '@/features/projects/ProjectsPage'
 import { TasksPage } from '@/features/tasks/TasksPage'
 import { ActivitiesPage } from '@/features/activities/ActivitiesPage'
@@ -40,6 +42,8 @@ export default function App() {
               <Route path="lead-finder/:id" element={<ProspectDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="deals" element={<DealsPage />} />
+              <Route path="meetings" element={<MeetingsPage />} />
+              <Route path="proposals" element={<ProposalsPage />} />
               <Route path="customers" element={<Navigate to="/clients?status=active" replace />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="tasks" element={<TasksPage />} />

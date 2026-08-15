@@ -98,6 +98,26 @@ export function DashboardPage() {
       value: metrics ? String(metrics.overdueFollowUps) : '—',
       to: '/pipeline',
     },
+    {
+      label: 'Upcoming meetings',
+      value: metrics ? String(metrics.upcomingMeetings) : '—',
+      to: '/meetings',
+    },
+    {
+      label: 'Open proposals',
+      value: metrics ? String(metrics.openProposals) : '—',
+      to: '/proposals',
+    },
+    {
+      label: 'Won this month',
+      value: metrics ? String(metrics.wonThisMonth) : '—',
+      to: '/pipeline',
+    },
+    {
+      label: 'Lost this month',
+      value: metrics ? String(metrics.lostThisMonth) : '—',
+      to: '/pipeline',
+    },
   ]
 
   return (
