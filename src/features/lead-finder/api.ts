@@ -41,6 +41,26 @@ function mapProspect(row: Record<string, unknown>): Prospect {
   return row as unknown as Prospect
 }
 
+const IN_FILTER_CHUNK = 40
+
+async function selectWhereIdIn<T>(
+  table: 'prospects' | 'prospect_outreach',
+  select: string,
+  column: string,
+  ids: string[],
+): Promise<T[]> {
+  if (ids.length === 0) return []
+  const supabase = getSupabaseClient()
+  const rows: T[] = []
+  for (let i = 0; i < ids.length; i += IN_FILTER_CHUNK) {
+    const chunk = ids.slice(i, i + IN_FILTER_CHUNK)
+    const { data, error } = await supabase.from(table).select(select).in(column, chunk)
+    if (error) throw new Error(error.message)
+    rows.push(...((data as T[] | null) ?? []))
+  }
+  return rows
+}
+
 export async function listProspects(filters: ProspectFilters): Promise<Prospect[]> {
   const supabase = getSupabaseClient()
   let query = supabase.from('prospects').select('*')
@@ -78,7 +98,26 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
     if (outreachError) throw new Error(outreachError.message)
     const ids = [...new Set((rows ?? []).map((row) => row.prospect_id as string))]
     if (ids.length === 0) return []
-    query = query.in('id', ids)
+    const matched = await selectWhereIdIn<ProspectRow>('prospects', '*', 'id', ids)
+    let scoped = matched.map((row) => mapProspect(row as Record<string, unknown>))
+    if (filters.searchId) scoped = scoped.filter((row) => row.search_id === filters.searchId)
+    if (!filters.showInLeads) scoped = scoped.filter((row) => !row.saved_to_crm)
+    if (filters.hasWebsite === 'yes') scoped = scoped.filter((row) => row.has_website)
+    if (filters.hasWebsite === 'no') scoped = scoped.filter((row) => !row.has_website)
+    const search = filters.search.trim().toLowerCase()
+    if (search) {
+      scoped = scoped.filter((row) =>
+        [row.business_name, row.city, row.industry, row.notes]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(search)),
+      )
+    }
+    if (filters.sort === 'name_asc') {
+      scoped.sort((a, b) => a.business_name.localeCompare(b.business_name))
+    } else {
+      scoped.sort((a, b) => b.created_at.localeCompare(a.created_at))
+    }
+    return scoped
   }
 
   if (filters.sort === 'name_asc') query = query.order('business_name', { ascending: true })
@@ -289,6 +328,14 @@ export type OutreachSnapshot = {
   latestByProspectId: Record<string, LatestOutreach>
 }
 
+type OutreachSelectRow = {
+  prospect_id: string
+  method: string
+  result: string
+  contacted_at: string
+  created_at: string
+}
+
 export async function getOutreachSnapshot(prospects: Prospect[]): Promise<OutreachSnapshot> {
   const today = new Date().toISOString().slice(0, 10)
   const ids = prospects.map((p) => p.id)
@@ -297,12 +344,24 @@ export async function getOutreachSnapshot(prospects: Prospect[]): Promise<Outrea
   const latestByProspectId: Record<string, LatestOutreach> = {}
 
   if (ids.length > 0) {
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase
-      .from('prospect_outreach')
-      .select('prospect_id, method, result, contacted_at, created_at')
-      .in('prospect_id', ids)
-    if (error) throw new Error(error.message)
+    const outreachSelect = 'prospect_id, method, result, contacted_at, created_at'
+    let data: OutreachSelectRow[]
+    // A single .in() with hundreds of UUIDs exceeds PostgREST's URL limit (400 Bad Request).
+    // For large lists, load outreach via RLS and keep matching ids in memory.
+    if (ids.length > IN_FILTER_CHUNK) {
+      const supabase = getSupabaseClient()
+      const { data: allRows, error } = await supabase.from('prospect_outreach').select(outreachSelect)
+      if (error) throw new Error(error.message)
+      const wanted = new Set(ids)
+      data = ((allRows as OutreachSelectRow[] | null) ?? []).filter((row) => wanted.has(row.prospect_id))
+    } else {
+      data = await selectWhereIdIn<OutreachSelectRow>(
+        'prospect_outreach',
+        outreachSelect,
+        'prospect_id',
+        ids,
+      )
+    }
 
     const interestedIds = new Set<string>()
     const meetingIds = new Set<string>()

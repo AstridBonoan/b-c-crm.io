@@ -428,7 +428,7 @@ export function LeadFinderPage() {
           {filters.showInLeads ? 'Hide names already in Leads' : 'Show already in Leads'}
         </Button>
         <Button variant="secondary" type="button" onClick={() => void toggleShowAll()}>
-          {showAllSearches ? 'Show latest search only' : 'Show all saved prospects'}
+          {showAllSearches ? 'This search only' : 'All searches'}
         </Button>
       </div>
 
