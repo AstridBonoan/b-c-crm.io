@@ -22,6 +22,8 @@ import {
   type ClientFormValues,
 } from '@/features/clients/schemas'
 import type { Client, ClientStatus, ClientType } from '@/types/database'
+import { getClientFinanceSummary, type ClientFinanceSummary } from '@/features/finance/api'
+import { FinanceSummaryPanel } from '@/features/finance/FinanceSummaryPanel'
 
 function statusTone(status: ClientStatus): 'neutral' | 'brand' | 'success' | 'danger' {
   if (status === 'active') return 'success'
@@ -48,6 +50,9 @@ export function ClientsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Client | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [financeClient, setFinanceClient] = useState<Client | null>(null)
+  const [financeSummary, setFinanceSummary] = useState<ClientFinanceSummary | null>(null)
+  const [financeBusy, setFinanceBusy] = useState(false)
 
   const setStatus = (next: 'all' | ClientStatus) => {
     setSearchParams(
@@ -239,6 +244,21 @@ export function ClientsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => {
+                          setFinanceClient(client)
+                          setFinanceSummary(null)
+                          setFinanceBusy(true)
+                          void getClientFinanceSummary(client.id)
+                            .then(setFinanceSummary)
+                            .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load finance'))
+                            .finally(() => setFinanceBusy(false))
+                        }}
+                      >
+                        Finance
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-danger hover:bg-danger-soft"
                         onClick={() => setDeleting(client)}
                       >
@@ -275,6 +295,20 @@ export function ClientsPage() {
             }
           }}
         />
+      </Modal>
+
+      <Modal
+        open={Boolean(financeClient)}
+        title={financeClient ? `${financeClient.name} — finance` : 'Finance'}
+        onClose={() => setFinanceClient(null)}
+      >
+        {financeBusy ? (
+          <p className="text-sm text-ink-muted">Loading…</p>
+        ) : financeSummary ? (
+          <FinanceSummaryPanel title="Financial summary" summary={financeSummary} />
+        ) : (
+          <p className="text-sm text-ink-muted">No finance data.</p>
+        )}
       </Modal>
 
       <ConfirmDialog

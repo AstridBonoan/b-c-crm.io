@@ -11,6 +11,11 @@ import { DealsPage } from '@/features/deals/DealsPage'
 import { MeetingsPage } from '@/features/meetings/MeetingsPage'
 import { ProposalsPage } from '@/features/proposals/ProposalsPage'
 import { ProjectsPage } from '@/features/projects/ProjectsPage'
+import { FinanceDashboardPage } from '@/features/finance/FinanceDashboardPage'
+import { InvoicesPage } from '@/features/finance/InvoicesPage'
+import { InvoiceDetailPage } from '@/features/finance/InvoiceDetailPage'
+import { PaymentsPage } from '@/features/finance/PaymentsPage'
+import { FinanceSettingsPage } from '@/features/finance/FinanceSettingsPage'
 import { TasksPage } from '@/features/tasks/TasksPage'
 import { ActivitiesPage } from '@/features/activities/ActivitiesPage'
 import { NotesPage } from '@/features/notes/NotesPage'
@@ -46,6 +51,11 @@ export default function App() {
               <Route path="proposals" element={<ProposalsPage />} />
               <Route path="customers" element={<Navigate to="/clients?status=active" replace />} />
               <Route path="projects" element={<ProjectsPage />} />
+              <Route path="finance" element={<FinanceDashboardPage />} />
+              <Route path="finance/settings" element={<FinanceSettingsPage />} />
+              <Route path="invoices" element={<InvoicesPage />} />
+              <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
               <Route path="tasks" element={<TasksPage />} />
               <Route path="activities" element={<ActivitiesPage />} />
               <Route path="notes" element={<NotesPage />} />

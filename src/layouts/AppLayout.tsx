@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Briefcase,
   Building2,
   CalendarDays,
@@ -17,6 +18,8 @@ import {
   Target,
   Radar,
   UsersRound,
+  Receipt,
+  Wallet,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -43,6 +46,9 @@ const navItems: {
   { to: '/meetings', label: 'Meetings', icon: CalendarDays },
   { to: '/proposals', label: 'Proposals', icon: FileSpreadsheet },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/finance', label: 'Finance', icon: Wallet },
+  { to: '/invoices', label: 'Invoices', icon: Receipt },
+  { to: '/payments', label: 'Payments', icon: Banknote },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/activities', label: 'Activities', icon: NotebookPen },
   { to: '/notes', label: 'Notes', icon: StickyNote },
@@ -61,7 +67,7 @@ export function AppLayout() {
   return (
     <div className="app-shell-bg flex min-h-full">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar text-sidebar-text shadow-[4px_0_24px_rgba(10,15,24,0.2)] transition-transform duration-300 ease-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar text-sidebar-text shadow-[4px_0_24px_rgba(10,15,24,0.2)] transition-transform duration-300 ease-out print:hidden lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -129,7 +135,7 @@ export function AppLayout() {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line bg-header px-4 backdrop-blur-md">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-line bg-header px-4 backdrop-blur-md print:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
