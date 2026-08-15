@@ -284,6 +284,20 @@ export type ProspectNoteRow = {
   created_at: string
 }
 
+export type ProspectOutreachRow = {
+  id: string
+  prospect_id: string
+  lead_id: string | null
+  method: string
+  contacted_at: string
+  result: string
+  next_follow_up_at: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 type TableDef<Row> = {
   Row: Row
   Insert: Partial<Row> & { id?: string }
@@ -310,6 +324,7 @@ export type Database = {
       prospect_lists: TableDef<ProspectListRow>
       prospect_list_items: TableDef<ProspectListItemRow>
       prospect_notes: TableDef<ProspectNoteRow>
+      prospect_outreach: TableDef<ProspectOutreachRow>
     }
     Views: Record<string, never>
     Functions: Record<string, never>

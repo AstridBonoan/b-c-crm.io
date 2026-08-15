@@ -5,15 +5,30 @@ import type {
   Prospect,
   ProspectList,
   ProspectNote,
+  ProspectOutreach,
+  ProspectOutreachMethod,
+  ProspectOutreachResult,
   ProspectSearch,
 } from '@/features/lead-finder/types'
+import type { OutreachFormValues } from '@/features/lead-finder/schemas'
 import type { ProspectRow } from '@/types/database'
 import { createLead } from '@/features/leads/api'
+
+export type ProspectOutreachFilter =
+  | 'all'
+  | 'not_contacted'
+  | 'contacted'
+  | 'follow_up_due'
+  | 'follow_up_overdue'
+  | 'interested'
+  | 'no_response'
+  | 'not_interested'
 
 export type ProspectFilters = {
   search: string
   industry: string | 'all'
   hasWebsite: 'all' | 'yes' | 'no'
+  outreach: ProspectOutreachFilter
   sort: 'name_asc' | 'newest'
   /** When set, only show prospects from this search run. */
   searchId?: string | null
@@ -31,6 +46,36 @@ export async function listProspects(filters: ProspectFilters): Promise<Prospect[
   if (filters.industry !== 'all') query = query.ilike('industry', `%${filters.industry}%`)
   if (filters.hasWebsite === 'yes') query = query.eq('has_website', true)
   if (filters.hasWebsite === 'no') query = query.eq('has_website', false)
+
+  const today = new Date().toISOString().slice(0, 10)
+  if (filters.outreach === 'not_contacted') query = query.is('last_contacted_at', null)
+  if (filters.outreach === 'contacted') query = query.not('last_contacted_at', 'is', null)
+  if (filters.outreach === 'follow_up_due') {
+    query = query.not('next_follow_up_at', 'is', null).gte('next_follow_up_at', today)
+  }
+  if (filters.outreach === 'follow_up_overdue') {
+    query = query.not('next_follow_up_at', 'is', null).lt('next_follow_up_at', today)
+  }
+
+  if (
+    filters.outreach === 'interested' ||
+    filters.outreach === 'no_response' ||
+    filters.outreach === 'not_interested'
+  ) {
+    const resultMap: Record<string, ProspectOutreachResult> = {
+      interested: 'interested',
+      no_response: 'no_response',
+      not_interested: 'not_interested',
+    }
+    const { data: rows, error: outreachError } = await supabase
+      .from('prospect_outreach')
+      .select('prospect_id')
+      .eq('result', resultMap[filters.outreach])
+    if (outreachError) throw new Error(outreachError.message)
+    const ids = [...new Set((rows ?? []).map((row) => row.prospect_id as string))]
+    if (ids.length === 0) return []
+    query = query.in('id', ids)
+  }
 
   if (filters.sort === 'name_asc') query = query.order('business_name', { ascending: true })
   else query = query.order('created_at', { ascending: false })
@@ -100,6 +145,108 @@ export async function addProspectNote(
   }
 
   return data as ProspectNote
+}
+
+export async function listProspectOutreach(prospectId: string): Promise<ProspectOutreach[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('prospect_outreach')
+    .select('*')
+    .eq('prospect_id', prospectId)
+    .order('contacted_at', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data as ProspectOutreach[]) ?? []
+}
+
+export async function createProspectOutreach(
+  prospect: Prospect,
+  values: OutreachFormValues,
+  userId: string | undefined,
+): Promise<ProspectOutreach> {
+  const supabase = getSupabaseClient()
+  const nextFollowUp = values.next_follow_up_at?.trim() || null
+  const { data, error } = await supabase
+    .from('prospect_outreach')
+    .insert({
+      prospect_id: prospect.id,
+      lead_id: prospect.crm_lead_id,
+      method: values.method as ProspectOutreachMethod,
+      contacted_at: values.contacted_at,
+      result: values.result as ProspectOutreachResult,
+      next_follow_up_at: nextFollowUp,
+      notes: values.notes?.trim() || null,
+      created_by: userId ?? null,
+    })
+    .select('*')
+    .single()
+  if (error) throw new Error(error.message)
+
+  const { error: updateError } = await supabase
+    .from('prospects')
+    .update({
+      last_contacted_at: values.contacted_at,
+      ...(nextFollowUp ? { next_follow_up_at: nextFollowUp } : {}),
+    })
+    .eq('id', prospect.id)
+  if (updateError) throw new Error(updateError.message)
+
+  return data as ProspectOutreach
+}
+
+export type OutreachSnapshot = {
+  total: number
+  notContacted: number
+  contacted: number
+  followUpsDue: number
+  followUpsOverdue: number
+  interested: number
+  meetingsScheduled: number
+}
+
+export async function getOutreachSnapshot(prospects: Prospect[]): Promise<OutreachSnapshot> {
+  const today = new Date().toISOString().slice(0, 10)
+  const ids = prospects.map((p) => p.id)
+  let interested = 0
+  let meetingsScheduled = 0
+
+  if (ids.length > 0) {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('prospect_outreach')
+      .select('prospect_id, result')
+      .in('prospect_id', ids)
+    if (error) throw new Error(error.message)
+    const interestedIds = new Set<string>()
+    const meetingIds = new Set<string>()
+    for (const row of data ?? []) {
+      if (row.result === 'interested') interestedIds.add(row.prospect_id)
+      if (row.result === 'meeting_scheduled') meetingIds.add(row.prospect_id)
+    }
+    interested = interestedIds.size
+    meetingsScheduled = meetingIds.size
+  }
+
+  return {
+    total: prospects.length,
+    notContacted: prospects.filter((p) => !p.last_contacted_at).length,
+    contacted: prospects.filter((p) => Boolean(p.last_contacted_at)).length,
+    followUpsDue: prospects.filter(
+      (p) => p.next_follow_up_at && p.next_follow_up_at.slice(0, 10) >= today,
+    ).length,
+    followUpsOverdue: prospects.filter(
+      (p) => p.next_follow_up_at && p.next_follow_up_at.slice(0, 10) < today,
+    ).length,
+    interested,
+    meetingsScheduled,
+  }
+}
+
+export function upcomingFollowUps(prospects: Prospect[], limit = 8): Prospect[] {
+  return [...prospects]
+    .filter((p) => p.next_follow_up_at)
+    .sort((a, b) => (a.next_follow_up_at ?? '').localeCompare(b.next_follow_up_at ?? ''))
+    .slice(0, limit)
 }
 
 export async function updateProspectNotesField(id: string, notes: string): Promise<void> {
@@ -195,6 +342,7 @@ export async function runProspectSearch(
     search: '',
     industry: 'all',
     hasWebsite: 'all',
+    outreach: 'all',
     sort: 'newest',
     searchId: searchRow.id,
   })
