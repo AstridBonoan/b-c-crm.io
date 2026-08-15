@@ -3,16 +3,28 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { Modal } from '@/components/ui/Modal'
 import { useAuth } from '@/features/auth/useAuth'
 import {
   addProspectNote,
+  createProspectOutreach,
   getProspect,
   listProspectNotes,
+  listProspectOutreach,
   prospectGoogleSearchUrl,
   saveProspectToCrm,
   updateProspectNotesField,
 } from '@/features/lead-finder/api'
-import type { Prospect, ProspectNote } from '@/features/lead-finder/types'
+import { OutreachForm } from '@/features/lead-finder/OutreachForm'
+import {
+  formatOutreachDate,
+  outreachMethodLabel,
+  outreachResultLabel,
+  type OutreachFormValues,
+} from '@/features/lead-finder/schemas'
+import type { Prospect, ProspectNote, ProspectOutreach } from '@/features/lead-finder/types'
+import { PROSPECT_PIPELINE_LABELS } from '@/features/lead-finder/types'
 
 export function ProspectDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -20,6 +32,7 @@ export function ProspectDetailPage() {
   const navigate = useNavigate()
   const [prospect, setProspect] = useState<Prospect | null>(null)
   const [notes, setNotes] = useState<ProspectNote[]>([])
+  const [outreach, setOutreach] = useState<ProspectOutreach[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -27,15 +40,23 @@ export function ProspectDetailPage() {
   const [noteBody, setNoteBody] = useState('')
   const [followUp, setFollowUp] = useState('')
   const [crmNotes, setCrmNotes] = useState('')
+  const [logOpen, setLogOpen] = useState(false)
+  const [logSubmitting, setLogSubmitting] = useState(false)
+  const [logError, setLogError] = useState<string | null>(null)
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!id) return
     if (!opts?.silent) setLoading(true)
     setError(null)
     try {
-      const [p, n] = await Promise.all([getProspect(id), listProspectNotes(id)])
+      const [p, n, o] = await Promise.all([
+        getProspect(id),
+        listProspectNotes(id),
+        listProspectOutreach(id),
+      ])
       setProspect(p)
       setNotes(n)
+      setOutreach(o)
       setCrmNotes(p.notes ?? '')
       setFollowUp(p.next_follow_up_at ?? '')
     } catch (err) {
@@ -102,6 +123,20 @@ export function ProspectDetailPage() {
       setError(err instanceof Error ? err.message : 'Failed to add note')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const onLogOutreach = async (values: OutreachFormValues) => {
+    setLogSubmitting(true)
+    setLogError(null)
+    try {
+      await createProspectOutreach(prospect, values, user?.id)
+      setLogOpen(false)
+      await load({ silent: true })
+    } catch (err) {
+      setLogError(err instanceof Error ? err.message : 'Failed to save outreach')
+    } finally {
+      setLogSubmitting(false)
     }
   }
 
@@ -186,6 +221,20 @@ export function ProspectDetailPage() {
             <dt className="text-ink-muted">Industry</dt>
             <dd className="text-ink">{prospect.industry ?? '—'}</dd>
           </div>
+          <div>
+            <dt className="text-ink-muted">Lead status</dt>
+            <dd className="text-ink">
+              <Badge tone="brand">{PROSPECT_PIPELINE_LABELS[prospect.pipeline_status]}</Badge>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Last contacted</dt>
+            <dd className="text-ink">{formatOutreachDate(prospect.last_contacted_at)}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Next follow-up</dt>
+            <dd className="text-ink">{formatOutreachDate(prospect.next_follow_up_at)}</dd>
+          </div>
           {prospect.saved_to_crm && prospect.crm_lead_id ? (
             <div>
               <dt className="text-ink-muted">CRM</dt>
@@ -197,6 +246,50 @@ export function ProspectDetailPage() {
             </div>
           ) : null}
         </dl>
+      </Panel>
+
+      <Panel className="mb-4 px-4 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Outreach history</h2>
+            <p className="mt-1 text-xs text-ink-muted">
+              How this prospect was contacted. This does not change lead status by itself.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => { setLogError(null); setLogOpen(true) }}>
+            Log outreach
+          </Button>
+        </div>
+        {outreach.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-muted">No outreach logged yet.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line/70">
+            {outreach.map((item, index) => (
+              <li key={item.id} className="py-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-ink">
+                    {formatOutreachDate(item.contacted_at)}
+                    {index === 0 ? (
+                      <span className="ml-2 text-[11px] font-semibold tracking-wide text-ink-muted uppercase">
+                        Latest
+                      </span>
+                    ) : null}
+                  </p>
+                  <Badge tone="neutral">{outreachMethodLabel(item.method)}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-ink">
+                  Result: {outreachResultLabel(item.result)}
+                </p>
+                {item.next_follow_up_at ? (
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    Next follow-up: {formatOutreachDate(item.next_follow_up_at)}
+                  </p>
+                ) : null}
+                {item.notes ? <p className="mt-2 text-sm text-ink">{item.notes}</p> : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </Panel>
 
       <Panel className="mb-4 px-4 py-4">
@@ -255,6 +348,23 @@ export function ProspectDetailPage() {
           ))}
         </ul>
       </Panel>
+
+      <Modal
+        open={logOpen}
+        title="Log outreach"
+        onClose={() => {
+          if (!logSubmitting) setLogOpen(false)
+        }}
+      >
+        <OutreachForm
+          submitting={logSubmitting}
+          formError={logError}
+          onSubmit={onLogOutreach}
+          onCancel={() => {
+            if (!logSubmitting) setLogOpen(false)
+          }}
+        />
+      </Modal>
     </div>
   )
 }

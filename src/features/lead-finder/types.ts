@@ -72,3 +72,46 @@ export type ProspectNote = {
   created_by: string | null
   created_at: string
 }
+
+export type ProspectOutreachMethod =
+  | 'email'
+  | 'phone'
+  | 'linkedin'
+  | 'instagram'
+  | 'in_person'
+  | 'other'
+
+export type ProspectOutreachResult =
+  | 'no_response'
+  | 'responded'
+  | 'interested'
+  | 'not_interested'
+  | 'meeting_scheduled'
+  | 'proposal_requested'
+  | 'follow_up_needed'
+  | 'other'
+
+export type ProspectOutreach = {
+  id: string
+  prospect_id: string
+  lead_id: string | null
+  method: ProspectOutreachMethod
+  contacted_at: string
+  result: ProspectOutreachResult
+  next_follow_up_at: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const PROSPECT_PIPELINE_LABELS: Record<ProspectPipelineStatus, string> = {
+  new: 'New',
+  researching: 'Researching',
+  contacted: 'Contacted',
+  responded: 'Responded',
+  meeting: 'Meeting',
+  proposal: 'Proposal',
+  won: 'Won',
+  lost: 'Lost',
+}

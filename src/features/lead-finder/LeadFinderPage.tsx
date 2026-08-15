@@ -8,13 +8,18 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/useAuth'
 import {
+  getOutreachSnapshot,
   getProspectSearch,
   listProspects,
   prospectGoogleSearchUrl,
   prospectsToCsv,
   runProspectSearch,
+  upcomingFollowUps,
+  type OutreachSnapshot,
   type ProspectFilters,
+  type ProspectOutreachFilter,
 } from '@/features/lead-finder/api'
+import { formatOutreachDate } from '@/features/lead-finder/schemas'
 import {
   prospectSearchSchema,
   type ProspectSearchFormValues,
@@ -39,9 +44,11 @@ export function LeadFinderPage() {
     search: '',
     industry: 'all',
     hasWebsite: 'all',
+    outreach: 'all',
     sort: 'newest',
     searchId: null,
   })
+  const [snapshot, setSnapshot] = useState<OutreachSnapshot | null>(null)
   const [activeSearchLabel, setActiveSearchLabel] = useState<string | null>(null)
   const [sessionSearchId, setSessionSearchId] = useState<string | null>(null)
   const [showAllSearches, setShowAllSearches] = useState(false)
@@ -68,7 +75,9 @@ export function LeadFinderPage() {
     setLoading(true)
     setError(null)
     try {
-      setProspects(await listProspects(nextFilters))
+      const rows = await listProspects(nextFilters)
+      setProspects(rows)
+      setSnapshot(await getOutreachSnapshot(rows))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prospects')
     } finally {
@@ -86,6 +95,7 @@ export function LeadFinderPage() {
           search: '',
           industry: 'all',
           hasWebsite: 'all',
+          outreach: 'all',
           sort: 'newest',
           searchId,
         }),
@@ -96,10 +106,12 @@ export function LeadFinderPage() {
         search: '',
         industry: 'all',
         hasWebsite: 'all',
-        sort: 'newest',
-        searchId: search.id,
+          outreach: 'all',
+          sort: 'newest',
+          searchId: search.id,
       })
       setProspects(rows)
+      setSnapshot(await getOutreachSnapshot(rows))
       reset({
         industry: search.industry ?? '',
         city: search.city ?? '',
@@ -144,9 +156,15 @@ export function LeadFinderPage() {
       setWarning(result.warning ?? null)
       setActiveSearchLabel(result.search.query_label)
       setSessionSearchId(result.search.id)
-      const next = { ...filters, sort: 'newest' as const, searchId: result.search.id }
+      const next = {
+        ...filters,
+        outreach: 'all' as const,
+        sort: 'newest' as const,
+        searchId: result.search.id,
+      }
       setFilters(next)
       setProspects(result.prospects)
+      setSnapshot(await getOutreachSnapshot(result.prospects))
       writeLeadFinderSearchId(result.search.id)
       setSearchParams({ s: result.search.id }, { replace: true })
     } catch (err) {
@@ -161,6 +179,7 @@ export function LeadFinderPage() {
     setFilters(next)
     if (!showAllSearches && !next.searchId) {
       setProspects([])
+      setSnapshot(null)
       return
     }
     await load(next)
@@ -177,6 +196,7 @@ export function LeadFinderPage() {
     }
     if (!sessionSearchId) {
       setProspects([])
+      setSnapshot(null)
       setFilters({ ...filters, searchId: null })
       return
     }
@@ -260,6 +280,56 @@ export function LeadFinderPage() {
         </form>
       </Panel>
 
+      {snapshot && prospects.length > 0 ? (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          {[
+            { label: 'Total', value: snapshot.total },
+            { label: 'Not contacted', value: snapshot.notContacted },
+            { label: 'Contacted', value: snapshot.contacted },
+            { label: 'Follow-ups due', value: snapshot.followUpsDue },
+            { label: 'Overdue', value: snapshot.followUpsOverdue },
+            { label: 'Interested', value: snapshot.interested },
+            { label: 'Meetings', value: snapshot.meetingsScheduled },
+          ].map((item) => (
+            <Panel key={item.label} className="px-3 py-3">
+              <p className="text-[11px] font-semibold tracking-[0.1em] text-ink-muted uppercase">
+                {item.label}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-ink">{item.value}</p>
+            </Panel>
+          ))}
+        </div>
+      ) : null}
+
+      {prospects.length > 0 ? (
+        <Panel className="mb-4 px-4 py-4">
+          <h2 className="text-sm font-semibold text-ink">Next follow-up</h2>
+          {upcomingFollowUps(prospects).length === 0 ? (
+            <p className="mt-2 text-sm text-ink-muted">No follow-up dates on these prospects yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line/70">
+              {upcomingFollowUps(prospects).map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <Link to={`/lead-finder/${p.id}`} className="font-medium text-ink hover:underline">
+                    {p.business_name}
+                  </Link>
+                  <span
+                    className={
+                      p.next_follow_up_at &&
+                      p.next_follow_up_at.slice(0, 10) < new Date().toISOString().slice(0, 10)
+                        ? 'text-danger'
+                        : 'text-ink-muted'
+                    }
+                  >
+                    {formatOutreachDate(p.next_follow_up_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      ) : null}
+
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <input
           type="search"
@@ -278,6 +348,22 @@ export function LeadFinderPage() {
           <option value="all">Website: any</option>
           <option value="yes">Website found</option>
           <option value="no">Website unknown</option>
+        </select>
+        <select
+          className="input-field rounded-md lg:w-auto"
+          value={filters.outreach}
+          onChange={(e) =>
+            void applyFilters({ outreach: e.target.value as ProspectOutreachFilter })
+          }
+        >
+          <option value="all">Outreach: any</option>
+          <option value="not_contacted">Not contacted</option>
+          <option value="contacted">Contacted</option>
+          <option value="follow_up_due">Follow-up due</option>
+          <option value="follow_up_overdue">Follow-up overdue</option>
+          <option value="interested">Interested</option>
+          <option value="no_response">No response</option>
+          <option value="not_interested">Not interested</option>
         </select>
         <select
           className="input-field rounded-md lg:w-auto"
@@ -333,6 +419,7 @@ export function LeadFinderPage() {
                 <th className="px-4 py-3 font-semibold">Location</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 font-semibold">Website</th>
+                <th className="px-4 py-3 font-semibold">Follow-up</th>
               </tr>
             </thead>
             <tbody>
@@ -374,6 +461,9 @@ export function LeadFinderPage() {
                         Search to confirm
                       </a>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {formatOutreachDate(p.next_follow_up_at)}
                   </td>
                 </tr>
               ))}
